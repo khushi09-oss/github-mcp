@@ -102,3 +102,31 @@ def read_file(owner: str, repo: str, path: str) -> str:
         content = content[:3000] + f"\n\n... (truncated, full file is {data['size']} bytes)"
     return f"File: {path}\n\n{content}"
 
+@mcp.tool("Search code")
+def search_code(query:str, owner: str = "", repo: str ="") -> str:
+     """Search for code across GitHub. Optionally scope to a specific repo.
+ 
+    Args:
+        query: Search term (e.g. 'FastMCP' or 'def handle_request')
+        owner: Optional — limit to this user/org
+        repo: Optional — limit to this repo (requires owner too)
+    """
+     q=query
+     if owner and repo:
+            q+= f"repo:{owner}/{repo}"
+     elif owner:
+            q+= f"user:{owner}"
+
+     data = gh(f"/search/code", params={"q": q, "per_page": 10})
+     if isinstance(data, dict) and "error" in data:
+        return data["error"]
+
+     items = data.get("items", [])
+     if not items:
+             return "No results found."
+     total = data.get("total_count", 0)
+     lines = [f"Found {total} results for '{query}':\n"]
+     for item in items:
+        lines.append(f"  • {item['repository']['full_name']} → {item['path']}")
+        lines.append(f"    {item['html_url']}\n")
+     return "\n".join(lines)
