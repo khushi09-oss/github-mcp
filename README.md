@@ -41,7 +41,7 @@ git-hub-mcp.up.railway.app
 Once connected, just talk to Claude naturally:
 
 ```
-Show me all repos for user sanket-164, sorted by most recently updated
+Show me all repos for user khushi09-oss, sorted by most recently updated
 ```
 ```
 Search for MCP server Python repos on GitHub, sorted by stars
@@ -50,10 +50,10 @@ Search for MCP server Python repos on GitHub, sorted by stars
 Read the README.md from microsoft/vscode
 ```
 ```
-Browse the files inside sanket-164/MCP-Servers
+Browse the files inside khushi09-oss/MCP-Servers
 ```
 ```
-Search for "FastMCP" in the sanket-164/MCP-Servers repo
+Search for "FastMCP" in the khushi09-oss/MCP-Servers repo
 ```
 ```
 Find Python repos about machine learning on GitHub
