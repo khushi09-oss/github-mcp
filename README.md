@@ -1,8 +1,10 @@
 # GitHub MCP Server 
 
-A Python MCP (Model Context Protocol) server that gives Claude the ability to browse GitHub repositories, search code, and read issues & pull requests — in real time, directly from chat.
+A Python MCP (Model Context Protocol) server that gives Claude the ability to browse GitHub repositories and search code — in real time, directly from chat.
 
 Built with [FastMCP](https://github.com/modelcontextprotocol/python-sdk) · Deployed on Railway · No setup needed to connect
+
+>  **In progress** — Issues & PR tools coming soon.
 
 ---
 
@@ -24,20 +26,13 @@ git-hub-mcp.up.railway.app
 ### Browse repos & files
 - Get full details about any public repository — stars, forks, language, open issues
 - List all public repositories for any GitHub user
-- Browse the file and folder tree of any repo
+- Browse the file and folder tree of any repo at any path
 - Read the actual contents of any file (README, source code, configs)
 
 ### Search code & commits
 - Search for code across all of GitHub by keyword
 - Scope searches to a specific user or repository
 - Find repositories by keyword, filtered by language
-- View recent commit history on any branch
-
-### Read issues & PRs
-- List open or closed issues in any repository
-- Read the full body and metadata of a specific issue
-- List open or closed pull requests
-- Read full PR details including diff stats and description
 
 ---
 
@@ -55,16 +50,13 @@ Search for MCP server Python repos on GitHub, sorted by stars
 Read the README.md from microsoft/vscode
 ```
 ```
-List all open issues in facebook/react
-```
-```
-Show me the last 10 commits on the main branch of torvalds/linux
-```
-```
-Compare open PRs in vercel/next.js — how many are there and who opened them?
+Browse the files inside sanket-164/MCP-Servers
 ```
 ```
 Search for "FastMCP" in the sanket-164/MCP-Servers repo
+```
+```
+Find Python repos about machine learning on GitHub
 ```
 
 ---
@@ -77,13 +69,17 @@ Search for "FastMCP" in the sanket-164/MCP-Servers repo
 | `list_user_repos` | All public repos for a GitHub user | `username`, `sort` |
 | `list_repo_contents` | Browse files and folders at any path | `owner`, `repo`, `path` |
 | `read_file` | Read a file's full contents | `owner`, `repo`, `path` |
-| `search_code` | Search code across GitHub | `query`, `owner?`, `repo?` |
-| `list_commits` | Recent commits on a branch | `owner`, `repo`, `branch?`, `limit?` |
-| `search_repos` | Find repos by keyword | `query`, `language?`, `sort?` |
-| `list_issues` | Open or closed issues in a repo | `owner`, `repo`, `state?`, `limit?` |
-| `get_issue` | Full details of a specific issue | `owner`, `repo`, `issue_number` |
-| `list_pull_requests` | Open or closed PRs in a repo | `owner`, `repo`, `state?` |
-| `get_pull_request` | Full details of a specific PR | `owner`, `repo`, `pr_number` |
+| `search_code` | Search code across GitHub, optionally scoped to a repo | `query`, `owner?`, `repo?` |
+
+### Coming soon
+| Tool | Description |
+|---|---|
+| `list_commits` | Recent commits on any branch |
+| `search_repos` | Find repos by keyword and language |
+| `list_issues` | Open or closed issues in a repo |
+| `get_issue` | Full details of a specific issue |
+| `list_pull_requests` | Open or closed PRs in a repo |
+| `get_pull_request` | Full PR details with diff stats |
 
 ---
 
@@ -209,7 +205,7 @@ This opens a browser UI where you can call every tool directly and see the raw r
 
 ```
 github-mcp/
-├── server.py          # All 11 MCP tools
+├── server.py          # MCP tools (5 tools currently)
 ├── requirements.txt   # mcp[cli], requests
 ├── Procfile           # Railway start command
 └── README.md
@@ -222,9 +218,3 @@ github-mcp/
 - [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) — FastMCP server framework
 - [GitHub REST API](https://docs.github.com/en/rest) — v2022-11-28
 - [Railway](https://railway.app) — deployment platform
-
----
-
-## License
-
-MIT — use freely, deploy your own, contribute back.
