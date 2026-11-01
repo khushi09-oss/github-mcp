@@ -59,7 +59,10 @@ checks honestly. Run the unit/integration checks documented in README.md.
 The CI workflow runs the locked lint, format, type, build, test, dependency-audit
 and installed-wheel checks. Expected jobs are quality (ubuntu-latest) and
 quality (windows-latest); confirm their names/results on GitHub before configuring
-required checks. Hosted execution and branch protection are pending first delivery.
+required checks. Main now requires PRs, resolved conversations, up-to-date status
+checks from GitHub Actions, and linear history; force pushes/deletion are blocked
+and administrators are included. Hosted checks have not scheduled a run yet, so
+the configured check names remain pending runtime verification.
 Do not remove tests or weaken validation to make a change pass.
 
 Push only topic branches. Never force-push main or shared branches. Merge requires

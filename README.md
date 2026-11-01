@@ -108,7 +108,10 @@ on findings or audit errors. Pip-based dependency execution/resolution is disabl
 CI runs these checks on pull requests and branch pushes, then reinstalls the
 built wheel and repeats startup tests without re-syncing the editable package.
 The workflow uses read-only repository permissions, pinned actions and uv, and
-performs no publishing or deployment. Branch protection is not yet configured.
+performs no publishing or deployment. Main requires pull requests, resolved
+conversations, an up-to-date branch and the configured Windows/Ubuntu checks.
+Force pushes and deletion are blocked, including for administrators. Hosted CI
+has not yet scheduled a run, so those checks remain pending verification.
 
 The root `server.py`, `requirements.txt`, and non-working web `Procfile` have been
 replaced by the package, `pyproject.toml`, and `uv.lock`. Tool identifiers previously
