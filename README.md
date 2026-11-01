@@ -71,10 +71,10 @@ The initial implementation pins official MCP Python SDK 1.30.0, whose latest
 protocol revision is 2025-11-25. It is not a claim of support for newer protocol
 revisions. Compatibility is verified with the SDK's Python stdio client; specific
 IDE/desktop clients and non-Windows operating systems are not yet verified.
-The local baseline is Windows with Python 3.12.13. The CI workflow targets
-Windows and Ubuntu with the same Python version; hosted results are pending its
-first run. SDK 1.30.0 includes the upstream fix for the settings/lifespan warning.
-Startup and test warnings are treated as errors.
+The local baseline is Windows with Python 3.12.13. Other operating systems and
+specific IDE/desktop clients have not been verified. SDK 1.30.0 includes the
+upstream settings/lifespan fix. Startup and test warnings are treated as errors.
+Hosted CI is disabled by repository policy; local validation is used for PRs.
 
 The existing API tools still have prototype limitations: no pagination or
 revision-pinned reads, no request timeouts/retries, and incomplete network-error
@@ -85,7 +85,7 @@ build is intended for local development; it is not ready for unattended use.
 
 ## Development checks
 
-Install the locked development tools, then run the same gates used by CI:
+Install the locked development tools, then run the local quality checks:
 
 ```powershell
 uv sync --locked
@@ -105,13 +105,11 @@ third-party packages. It uses a fully hashed export of runtime and development
 dependencies from uv.lock, excluding only this checkout's own package, and fails
 on findings or audit errors. Pip-based dependency execution/resolution is disabled.
 
-CI runs these checks on pull requests and branch pushes, then reinstalls the
-built wheel and repeats startup tests without re-syncing the editable package.
-The workflow uses read-only repository permissions, pinned actions and uv, and
-performs no publishing or deployment. Main requires pull requests, resolved
-conversations, an up-to-date branch and the configured Windows/Ubuntu checks.
-Force pushes and deletion are blocked, including for administrators. Hosted CI
-has not yet scheduled a run, so those checks remain pending verification.
+Hosted CI and required status-check gates are disabled for this repository.
+The workflow definition is retained for optional future use. Before merging,
+run local checks and verify installed-wheel startup as applicable. Main requires
+pull requests, resolved conversations and linear history; force pushes and deletion
+are blocked, including for administrators. No automatic publishing or deployment.
 
 The root `server.py`, `requirements.txt`, and non-working web `Procfile` have been
 replaced by the package, `pyproject.toml`, and `uv.lock`. Tool identifiers previously

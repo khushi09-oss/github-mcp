@@ -4,6 +4,8 @@
 
 Use a focused topic branch: feat/<topic>, fix/<topic>, docs/<topic>,
 chore/<topic>, refactor/<topic>, test/<topic>, or infra/<topic>.
+Open PRs ready for review rather than as drafts. Hosted CI is disabled for this
+repository; relevant local validation is required before review and merge.
 Never commit or push directly to main. Use Conventional Commit messages and PR
 titles, for example `fix: separate search qualifiers`.
 
@@ -56,17 +58,15 @@ Inspect the staged diff and stage explicit paths. Confirm every included file is
 intended for publication; ignore rules do not remove already tracked files.
 Run relevant tests and available checks, and report exact results and unavailable
 checks honestly. Run the unit/integration checks documented in README.md.
-The CI workflow runs the locked lint, format, type, build, test, dependency-audit
-and installed-wheel checks. Expected jobs are quality (ubuntu-latest) and
-quality (windows-latest); confirm their names/results on GitHub before configuring
-required checks. Main now requires PRs, resolved conversations, up-to-date status
-checks from GitHub Actions, and linear history; force pushes/deletion are blocked
-and administrators are included. Hosted checks have not scheduled a run yet, so
-the configured check names remain pending runtime verification.
+Run the locked lint, format, type, build, test, dependency-audit and installed-wheel
+checks locally. Hosted CI and required status-check gates are disabled by repository
+policy; do not present local results as hosted results. Main still requires PRs,
+resolved conversations and linear history. Force pushes/deletion are blocked,
+including for administrators. Re-enabling hosted CI requires a maintainer decision.
 Do not remove tests or weaken validation to make a change pass.
 
 Push only topic branches. Never force-push main or shared branches. Merge requires
-maintainer authorization, resolved blocking findings, and passing required checks.
+maintainer authorization, resolved blocking findings, and passing local validation.
 Revert merged changes through another PR rather than rewriting main history.
 
 ## Dependencies and releases
