@@ -1,17 +1,24 @@
-## Why and what
+## Why
 
-<!-- Concrete problem and resulting behavior. Link public issues only. -->
+<!-- Problem, user impact, and public issue link if available. -->
 
-## Validation
+## What
 
-<!-- Exact commands/results; distinguish checks not run or not applicable. -->
+<!-- Approach and meaningful alternatives rejected, with reasons. Keep it concise. -->
 
-## Security and bug audit
+## How I tested
 
-<!-- Findings, fixes, remaining limitations; no formal review required. -->
+<!-- Exact checks/results, relevant failure paths, and red/green evidence for fixes.
+Distinguish local checks, hosted CI, and checks not run. -->
 
-## Risks and rollback
+## Review focus
 
-<!-- Compatibility/migrations, rollback, and follow-ups. -->
+<!-- Specific risky/tricky code locations, uncertainties, and security/bug audit
+findings. Point attention to what needs judgment; do not repeat the whole diff. -->
+
+## Risk / rollback
+
+<!-- Compatibility with existing callers/running versions, migrations, rollback
+steps, and relevant follow-ups. Say when these are not applicable. -->
 
 <!-- Include public information only; omit internal plans, local paths and notes. -->
