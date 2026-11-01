@@ -19,7 +19,10 @@ Inspect the staged diff and stage explicit paths. Confirm every included file is
 intended for publication; ignore rules do not remove already tracked files.
 Run relevant tests and available checks, and report exact results and unavailable
 checks honestly. Run the unit/integration checks documented in README.md.
-Automated CI and standardized lint/type gates are not configured yet.
+The CI workflow runs the locked lint, format, type, build, test, dependency-audit
+and installed-wheel checks. Expected jobs are quality (ubuntu-latest) and
+quality (windows-latest); confirm their names/results on GitHub before configuring
+required checks. Hosted execution and branch protection are pending first delivery.
 Do not remove tests or weaken validation to make a change pass.
 
 Push only topic branches. Never force-push main or shared branches. Merge requires

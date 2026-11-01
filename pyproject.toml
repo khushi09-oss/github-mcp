@@ -17,7 +17,30 @@ dependencies = [
 github-mcp = "github_mcp.__main__:main"
 
 [dependency-groups]
-dev = ["types-requests>=2.32,<3"]
+dev = [
+    "mypy==2.3.0",
+    "pip-audit==2.10.1",
+    "pytest==9.2.0",
+    "ruff==0.15.20",
+    "types-requests==2.33.0.20261030",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+addopts = "-ra --strict-config --strict-markers"
+filterwarnings = ["error"]
+
+[tool.ruff]
+target-version = "py312"
+
+[tool.ruff.lint]
+select = ["E4", "E7", "E9", "F", "I"]
+
+[tool.mypy]
+files = ["src/github_mcp"]
+python_version = "3.12"
+check_untyped_defs = true
+warn_unused_ignores = true
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/github_mcp"]
