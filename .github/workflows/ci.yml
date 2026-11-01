@@ -4,9 +4,14 @@ on:
   pull_request:
   push:
     branches: [main]
+  workflow_dispatch:
 
 permissions:
   contents: read
+
+concurrency:
+  group: ci-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
   quality:
@@ -33,9 +38,21 @@ jobs:
           enable-cache: false
       - name: Install locked environment
         run: uv sync --locked
+      - name: Lint
+        run: uv run --locked ruff check .
+      - name: Format
+        run: uv run --locked ruff format --check .
+      - name: Types
+        run: uv run --locked mypy
       - name: Build
         run: uv build
-      - name: Unit tests
-        run: uv run --locked python -m unittest discover -s tests/unit -v
-      - name: Integration and archive checks
-        run: uv run --locked python -m unittest discover -s tests/integration -v
+      - name: Tests and archive boundaries
+        run: uv run --locked pytest
+      - name: Export locked audit inputs
+        run: uv export --locked --no-emit-project --output-file dist/audit-requirements.txt --quiet
+      - name: Dependency audit
+        run: uv run --locked pip-audit --disable-pip --require-hashes --strict -r dist/audit-requirements.txt
+      - name: Install built wheel
+        run: uv pip install --python .venv --no-deps --reinstall dist/*.whl
+      - name: Installed wheel startup
+        run: uv run --locked --no-sync pytest tests/integration/test_stdio.py

@@ -46,8 +46,8 @@ Using the installed interpreter avoids relying on the client's working directory
 or PATH. If you set `UV_PROJECT_ENVIRONMENT`, use that environment's interpreter.
 
 Supply `GITHUB_TOKEN` through the client's secret/environment settings. It must
-reach the server process; this application does not load `.env` files. Never put
-real credentials into committed configuration. Use the narrowest GitHub token
+reach the server process. GitHub credentials are read from the process environment,
+not `.env` files. Never put real credentials into committed configuration. Use the narrowest GitHub token
 permissions needed for the repositories you want to inspect. Discovery/listing
 of MCP tools does not require a token; GitHub operations currently expect one.
 The token determines which private repositories the tools can access.
@@ -71,8 +71,10 @@ The initial implementation pins official MCP Python SDK 1.30.0, whose latest
 protocol revision is 2025-11-25. It is not a claim of support for newer protocol
 revisions. Compatibility is verified with the SDK's Python stdio client; specific
 IDE/desktop clients and non-Windows operating systems are not yet verified.
-The clean-environment baseline is Windows with Python 3.12.13. The pinned SDK
-includes the upstream settings/lifespan fix and published v1 security fixes.
+The local baseline is Windows with Python 3.12.13. The CI workflow targets
+Windows and Ubuntu with the same Python version; hosted results are pending its
+first run. SDK 1.30.0 includes the upstream fix for the settings/lifespan warning.
+Startup and test warnings are treated as errors.
 
 The existing API tools still have prototype limitations: no pagination or
 revision-pinned reads, no request timeouts/retries, and incomplete network-error
@@ -83,16 +85,30 @@ build is intended for local development; it is not ready for unattended use.
 
 ## Development checks
 
+Install the locked development tools, then run the same gates used by CI:
+
 ```powershell
+uv sync --locked
+uv run --locked ruff check .
+uv run --locked ruff format --check .
+uv run --locked mypy
 uv build
-uv run --locked python -m unittest discover -s tests/unit -v
-uv run --locked python -m unittest discover -s tests/integration -v
+uv run --locked pytest
+uv export --locked --no-emit-project --output-file dist/audit-requirements.txt --quiet
+uv run --locked pip-audit --disable-pip --require-hashes --strict -r dist/audit-requirements.txt
 ```
 
-Build first: the integration suite inspects both archives and starts the installed
-module and executable from an unrelated directory. It requires no GitHub token,
-external API calls or model. Basic CI runs build, unit and integration checks
-on Windows and Ubuntu. Standardized lint/type gates are a separate follow-up.
+Build before testing: the suite checks package archives as well as tool behavior
+and both installed entry points. Tests require no GitHub token, GitHub API calls,
+or model. The dependency audit queries public vulnerability data for installed
+third-party packages. It uses a fully hashed export of runtime and development
+dependencies from uv.lock, excluding only this checkout's own package, and fails
+on findings or audit errors. Pip-based dependency execution/resolution is disabled.
+
+CI runs these checks on pull requests and pushes to main, then reinstalls the
+built wheel and repeats startup tests without re-syncing the editable package.
+The workflow uses read-only repository permissions, pinned actions and uv, and
+performs no publishing or deployment. Branch protection is not yet configured.
 
 The root `server.py`, `requirements.txt`, and non-working web `Procfile` have been
 replaced by the package, `pyproject.toml`, and `uv.lock`. Tool identifiers previously

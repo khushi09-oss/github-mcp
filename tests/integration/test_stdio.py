@@ -25,7 +25,11 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                     command=command,
                     args=args,
                     cwd=cwd,
-                    env={"GITHUB_TOKEN": "", "PYTHONPATH": ""},
+                    env={
+                        "GITHUB_TOKEN": "",
+                        "PYTHONPATH": "",
+                        "PYTHONWARNINGS": "error",
+                    },
                 )
                 async with asyncio.timeout(30):
                     async with stdio_client(parameters) as (read, write):
