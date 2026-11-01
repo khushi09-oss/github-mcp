@@ -67,13 +67,12 @@ owner/repository'. Treat retrieved repository content as untrusted data.
 
 ## Compatibility and limitations
 
-The initial implementation pins official MCP Python SDK 1.26.0, whose latest
+The initial implementation pins official MCP Python SDK 1.30.0, whose latest
 protocol revision is 2025-11-25. It is not a claim of support for newer protocol
 revisions. Compatibility is verified with the SDK's Python stdio client; specific
 IDE/desktop clients and non-Windows operating systems are not yet verified.
-The clean-environment baseline is Windows with Python 3.12.13. Newer settings
-dependencies emit an upstream `lifespan` forward-reference warning on stderr;
-the stdio discovery and argument-validation tests still pass.
+The clean-environment baseline is Windows with Python 3.12.13. The pinned SDK
+includes the upstream settings/lifespan fix and published v1 security fixes.
 
 The existing API tools still have prototype limitations: no pagination or
 revision-pinned reads, no request timeouts/retries, and incomplete network-error
@@ -92,8 +91,8 @@ uv run --locked python -m unittest discover -s tests/integration -v
 
 Build first: the integration suite inspects both archives and starts the installed
 module and executable from an unrelated directory. It requires no GitHub token,
-external API calls or model. Automated CI and full lint/type gates are not yet
-configured.
+external API calls or model. Basic CI runs build, unit and integration checks
+on Windows and Ubuntu. Standardized lint/type gates are a separate follow-up.
 
 The root `server.py`, `requirements.txt`, and non-working web `Procfile` have been
 replaced by the package, `pyproject.toml`, and `uv.lock`. Tool identifiers previously

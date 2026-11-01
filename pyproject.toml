@@ -9,7 +9,7 @@ description = "A local, read-only MCP server for exploring GitHub repositories"
 readme = "README.md"
 requires-python = ">=3.12"
 dependencies = [
-    "mcp==1.26.0",
+    "mcp==1.30.0",
     "requests==2.33.0",
 ]
 
