@@ -57,10 +57,10 @@ The token determines which private repositories the tools can access.
 | Identifier | Purpose |
 | --- | --- |
 | `get_repo` | Read metadata for one repository |
-| `list_user_repos` | List up to 20 repositories returned for a username |
+| `list_user_repos` | List one page of repositories (20 by default) |
 | `list_repo_contents` | List files/folders at a repository path |
 | `read_file` | Read a file, returning at most 3,000 characters |
-| `search_code` | Return up to 10 GitHub code-search matches |
+| `search_code` | Search code with page controls (10 matches by default) |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -76,12 +76,28 @@ specific IDE/desktop clients have not been verified. SDK 1.30.0 includes the
 upstream settings/lifespan fix. Startup and test warnings are treated as errors.
 Hosted CI is disabled by repository policy; local validation is used for PRs.
 
-The existing API tools still have prototype limitations: no pagination or
-revision-pinned reads, no request timeouts/retries, and incomplete network-error
-handling. Scoped search currently constructs qualifiers incorrectly; use an
-unscoped query or include a properly spaced `repo:owner/name` qualifier in `query`
-while leaving `owner`/`repo` empty. Binary/large files may be unsupported. This
-build is intended for local development; it is not ready for unattended use.
+Repository listing and code search accept `page` (positive integer) and
+`per_page` (1-100). Repeat with the suggested next page and the same page size.
+A full repository page suggests checking for more; it does not guarantee another
+page exists. Code search is restricted to the first 1,000 matches and reports
+incomplete GitHub results. Directory listings are not paginated: GitHub's contents
+endpoint caps them at 1,000 entries, and a full listing is flagged as potentially
+incomplete. Search scopes now use properly separated `user:`/`repo:` qualifiers.
+
+Requests use 3.05-second connect and 10-second read-inactivity timeouts, with at
+most three attempts for transient connection/timeouts and selected 5xx responses.
+Ordinary retries wait 1 then 2 seconds. Rate limits honor Retry-After/reset hints;
+waits longer than 5 seconds return an actionable retry hint rather than sleeping.
+Missing/invalid rate-limit hints default to 60 seconds. Read timeout is not a
+whole-response deadline. See [GitHub's rate-limit guidance](https://docs.github.com/en/rest/using-the-rest-api/best-practices-for-using-the-rest-api#handle-rate-limit-errors-appropriately).
+
+Authentication, permission, not-found, invalid request, transport and malformed
+response failures are reported without echoing HTTP bodies or exception details.
+Public operations can run without a token; code search requires GitHub
+authentication. Redirects are not followed; use a repository's canonical name if
+it moved. Repository reads are not yet pinned to a revision, file output remains
+limited to 3,000 characters, and binary/large-file support is limited. This build
+is intended for local development, not unattended production use.
 
 ## Development checks
 
