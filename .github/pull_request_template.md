@@ -22,3 +22,4 @@ findings. Point attention to what needs judgment; do not repeat the whole diff. 
 steps, and relevant follow-ups. Say when these are not applicable. -->
 
 <!-- Include public information only; omit internal plans, local paths and notes. -->
+<!-- Omit assistant/model attribution, generated-by footers and agent signatures. -->

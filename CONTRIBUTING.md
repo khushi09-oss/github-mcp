@@ -21,6 +21,11 @@ alternatives, verification evidence, risky locations and uncertainties, then
 compatibility and rollback. Keep descriptions concise and useful without chat
 context. Put relevant security/bug audit findings under Review focus.
 
+Keep PR titles, descriptions, comments and attachments focused on the change.
+Do not add assistant/model names, tool attribution, generated-by footers, agent
+signatures or automated co-author credits. Apply the same rule to commit messages
+and trailers. Report the actual work and verification without authorship labels.
+
 One PR should make one logical change, ideally describable in one sentence.
 Aim for roughly 400 reviewable changed lines or fewer; this is guidance, not a
 reason to omit necessary tests or documentation. Identify generated lockfile
