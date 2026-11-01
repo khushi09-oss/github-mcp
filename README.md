@@ -105,7 +105,7 @@ third-party packages. It uses a fully hashed export of runtime and development
 dependencies from uv.lock, excluding only this checkout's own package, and fails
 on findings or audit errors. Pip-based dependency execution/resolution is disabled.
 
-CI runs these checks on pull requests and pushes to main, then reinstalls the
+CI runs these checks on pull requests and branch pushes, then reinstalls the
 built wheel and repeats startup tests without re-syncing the editable package.
 The workflow uses read-only repository permissions, pinned actions and uv, and
 performs no publishing or deployment. Branch protection is not yet configured.
