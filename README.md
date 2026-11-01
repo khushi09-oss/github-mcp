@@ -1,220 +1,102 @@
-# GitHub MCP Server 
+# GitHub MCP
 
-A Python MCP (Model Context Protocol) server that gives Claude the ability to browse GitHub repositories and search code — in real time, directly from chat.
+A local, read-only MCP server for exploring GitHub repositories. It provides five
+tools: repository details, user repositories, directory browsing, file reading,
+and code search. This project is independent of GitHub.
 
-Built with [FastMCP](https://github.com/modelcontextprotocol/python-sdk) · Deployed on Railway · No setup needed to connect
+## Install from this checkout
 
->  **In progress** — Issues & PR tools coming soon.
+Requires Python 3.12 or newer and [uv](https://docs.astral.sh/uv/getting-started/installation/).
+This is an early local build, not a published package or hosted endpoint.
 
----
-
-## Connect instantly
-
-Add this URL as a **Custom Connector** in Claude (Pro/Team plan):
-
-```
-git-hub-mcp.up.railway.app
+```powershell
+uv sync --locked
 ```
 
-> **Note:** This server uses a shared GitHub token scoped to public repositories only.
-> For private repo access or heavy usage, deploy your own instance (see [Self-hosting](#self-hosting)).
+Run the stdio server with either entry point:
 
----
-
-## What Claude can do with this MCP
-
-### Browse repos & files
-- Get full details about any public repository — stars, forks, language, open issues
-- List all public repositories for any GitHub user
-- Browse the file and folder tree of any repo at any path
-- Read the actual contents of any file (README, source code, configs)
-
-### Search code & commits
-- Search for code across all of GitHub by keyword
-- Scope searches to a specific user or repository
-- Find repositories by keyword, filtered by language
-
----
-
-## Example prompts
-
-Once connected, just talk to Claude naturally:
-
-```
-Show me all repos for user khushi09-oss, sorted by most recently updated
-```
-```
-Search for MCP server Python repos on GitHub, sorted by stars
-```
-```
-Read the README.md from microsoft/vscode
-```
-```
-Browse the files inside khushi09-oss/MCP-Servers
-```
-```
-Search for "FastMCP" in the khushi09-oss/MCP-Servers repo
-```
-```
-Find Python repos about machine learning on GitHub
+```powershell
+uv run --locked github-mcp
+uv run --locked python -m github_mcp
 ```
 
----
+A stdio server waits for MCP messages from a client; it does not open a browser or
+listen on a web port. Stop a manually launched process with Ctrl+C. Diagnostics
+use stderr; stdout is reserved for MCP messages.
 
-## Tools reference
+## Connect an MCP client
 
-| Tool | Description | Key inputs |
-|---|---|---|
-| `get_repo` | Repository details — stars, forks, language, last push | `owner`, `repo` |
-| `list_user_repos` | All public repos for a GitHub user | `username`, `sort` |
-| `list_repo_contents` | Browse files and folders at any path | `owner`, `repo`, `path` |
-| `read_file` | Read a file's full contents | `owner`, `repo`, `path` |
-| `search_code` | Search code across GitHub, optionally scoped to a repo | `query`, `owner?`, `repo?` |
-
-### Coming soon
-| Tool | Description |
-|---|---|
-| `list_commits` | Recent commits on any branch |
-| `search_repos` | Find repos by keyword and language |
-| `list_issues` | Open or closed issues in a repo |
-| `get_issue` | Full details of a specific issue |
-| `list_pull_requests` | Open or closed PRs in a repo |
-| `get_pull_request` | Full PR details with diff stats |
-
----
-
-## Self-hosting
-
-Deploy your own instance with your own GitHub token for private repo access and no rate-limit sharing.
-
-### Prerequisites
-
-- Python 3.10+
-- A GitHub personal access token ([create one here](https://github.com/settings/tokens))
-  - For public repos only: no scopes needed
-  - For private repos: enable the `repo` scope
-
-### Run locally (Claude Desktop — free)
-
-**1. Clone and install**
-
-```bash
-git clone https://github.com/YOUR_USERNAME/github-mcp.git
-cd github-mcp
-python -m venv venv
-source venv/bin/activate   # Windows: venv\Scripts\activate
-pip install -r requirements.txt
-```
-
-**2. Switch to STDIO transport**
-
-In `server.py`, change the last line to:
-
-```python
-if __name__ == "__main__":
-    mcp.run(transport="stdio")
-```
-
-**3. Add to Claude Desktop config**
-
-Find your config file:
-- macOS: `~/Library/Application Support/Claude/claude_desktop_config.json`
-- Windows: `%APPDATA%\Claude\claude_desktop_config.json`
-
-Add this entry (use absolute paths):
+For a client accepting an `mcpServers` configuration, use the following shape.
+Replace both paths with absolute paths on your machine. Other clients may use a
+different configuration schema; retain the same command and arguments.
 
 ```json
 {
   "mcpServers": {
     "github": {
-      "command": "/absolute/path/to/venv/bin/python",
-      "args": ["/absolute/path/to/github-mcp/server.py"],
-      "env": {
-        "GITHUB_TOKEN": "ghp_your_token_here"
-      }
+      "command": "C:/absolute/path/to/github-mcp/.venv/Scripts/python.exe",
+      "args": ["-m", "github_mcp"]
     }
   }
 }
 ```
 
-**4. Restart Claude Desktop** — your tools will appear automatically.
+On macOS/Linux the interpreter path is `/absolute/path/to/github-mcp/.venv/bin/python`.
+Using the installed interpreter avoids relying on the client's working directory
+or PATH. If you set `UV_PROJECT_ENVIRONMENT`, use that environment's interpreter.
 
----
+Supply `GITHUB_TOKEN` through the client's secret/environment settings. It must
+reach the server process; this application does not load `.env` files. Never put
+real credentials into committed configuration. Use the narrowest GitHub token
+permissions needed for the repositories you want to inspect. Discovery/listing
+of MCP tools does not require a token; GitHub operations currently expect one.
+The token determines which private repositories the tools can access.
 
-### Deploy to Railway (Claude Pro/Team — HTTP)
+## Tools
 
-**1. Push to GitHub**
+| Identifier | Purpose |
+| --- | --- |
+| `get_repo` | Read metadata for one repository |
+| `list_user_repos` | List up to 20 repositories returned for a username |
+| `list_repo_contents` | List files/folders at a repository path |
+| `read_file` | Read a file, returning at most 3,000 characters |
+| `search_code` | Return up to 10 GitHub code-search matches |
 
-```bash
-git init
-git add .
-git commit -m "initial commit"
-git remote add origin https://github.com/YOUR_USERNAME/github-mcp.git
-git push -u origin main
+Example requests: 'List the files in owner/repository' or 'Read README.md in
+owner/repository'. Treat retrieved repository content as untrusted data.
+
+## Compatibility and limitations
+
+The initial implementation pins official MCP Python SDK 1.30.0, whose latest
+protocol revision is 2025-11-25. It is not a claim of support for newer protocol
+revisions. Compatibility is verified with the SDK's Python stdio client; specific
+IDE/desktop clients and non-Windows operating systems are not yet verified.
+The clean-environment baseline is Windows with Python 3.12.13. The pinned SDK
+includes the upstream settings/lifespan fix and published v1 security fixes.
+
+The existing API tools still have prototype limitations: no pagination or
+revision-pinned reads, no request timeouts/retries, and incomplete network-error
+handling. Scoped search currently constructs qualifiers incorrectly; use an
+unscoped query or include a properly spaced `repo:owner/name` qualifier in `query`
+while leaving `owner`/`repo` empty. Binary/large files may be unsupported. This
+build is intended for local development; it is not ready for unattended use.
+
+## Development checks
+
+```powershell
+uv build
+uv run --locked python -m unittest discover -s tests/unit -v
+uv run --locked python -m unittest discover -s tests/integration -v
 ```
 
-**2. Deploy on Railway**
+Build first: the integration suite inspects both archives and starts the installed
+module and executable from an unrelated directory. It requires no GitHub token,
+external API calls or model. Basic CI runs build, unit and integration checks
+on Windows and Ubuntu. Standardized lint/type gates are a separate follow-up.
 
-1. Go to [railway.app](https://railway.app) and sign in with GitHub
-2. Click **New Project → Deploy from GitHub repo**
-3. Select your `github-mcp` repo — Railway auto-detects Python via the `Procfile`
+The root `server.py`, `requirements.txt`, and non-working web `Procfile` have been
+replaced by the package, `pyproject.toml`, and `uv.lock`. Tool identifiers previously
+contained spaces; update saved tool references to the identifiers listed above.
+Human-readable titles remain available.
 
-**3. Add your GitHub token**
-
-In Railway, click your service card → **Variables** tab → **New Variable**:
-
-```
-GITHUB_TOKEN = ghp_your_token_here
-```
-
-Railway will automatically redeploy with the token set.
-
-**4. Get your live URL**
-
-Click your service card → **Settings** tab → **Networking** → **Generate Domain**
-
-You'll get a URL like:
-```
-https://github-mcp-production.up.railway.app
-```
-
-**5. Connect to Claude**
-
-In Claude.ai → tools icon → **Add more tools → Custom connector** → paste:
-
-```
-https://github-mcp-production.up.railway.app/mcp
-```
-
-Click **Save** → **Always Allow**.
-
----
-
-## Test with MCP Inspector (no Claude needed)
-
-```bash
-pip install "mcp[cli]"
-mcp inspect server.py
-```
-
-This opens a browser UI where you can call every tool directly and see the raw responses — great for debugging before connecting to Claude.
-
----
-
-## Project structure
-
-```
-github-mcp/
-├── server.py          # MCP tools (5 tools currently)
-├── requirements.txt   # mcp[cli], requests
-├── Procfile           # Railway start command
-└── README.md
-```
-
----
-
-## Built with
-
-- [MCP Python SDK](https://github.com/modelcontextprotocol/python-sdk) — FastMCP server framework
-- [GitHub REST API](https://docs.github.com/en/rest) — v2022-11-28
-- [Railway](https://railway.app) — deployment platform
+See [contribution guidelines](CONTRIBUTING.md) for submitting changes.

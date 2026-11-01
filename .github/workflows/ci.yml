@@ -1,0 +1,41 @@
+name: CI
+
+on:
+  pull_request:
+  push:
+    branches: ["**"]
+
+permissions:
+  contents: read
+
+jobs:
+  quality:
+    name: quality (${{ matrix.os }})
+    runs-on: ${{ matrix.os }}
+    timeout-minutes: 15
+    strategy:
+      fail-fast: false
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    defaults:
+      run:
+        shell: bash
+    env:
+      GITHUB_TOKEN: ""
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@07a047e608db84b3d8c06cd9a7c7dcc9c355c18e # v10.3.2
+        with:
+          version: "0.11.1"
+          python-version: "3.12.13"
+          enable-cache: false
+      - name: Install locked environment
+        run: uv sync --locked
+      - name: Build
+        run: uv build
+      - name: Unit tests
+        run: uv run --locked python -m unittest discover -s tests/unit -v
+      - name: Integration and archive checks
+        run: uv run --locked python -m unittest discover -s tests/integration -v
