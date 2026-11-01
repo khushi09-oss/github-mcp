@@ -1,0 +1,29 @@
+[build-system]
+requires = ["hatchling==1.29.0"]
+build-backend = "hatchling.build"
+
+[project]
+name = "github-mcp"
+version = "0.1.0"
+description = "A local, read-only MCP server for exploring GitHub repositories"
+readme = "README.md"
+requires-python = ">=3.12"
+dependencies = [
+    "mcp==1.26.0",
+    "requests==2.33.0",
+]
+
+[project.scripts]
+github-mcp = "github_mcp.__main__:main"
+
+[dependency-groups]
+dev = ["types-requests>=2.32,<3"]
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/github_mcp"]
+
+[tool.hatch.build.targets.sdist]
+only-include = [
+    "src/github_mcp", "tests", "pyproject.toml", "uv.lock",
+    "README.md", "CONTRIBUTING.md", ".gitignore",
+]
