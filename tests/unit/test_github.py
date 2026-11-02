@@ -37,6 +37,46 @@ def test_timeout_and_redirect_policy(http):
     assert http.call_args.kwargs["allow_redirects"] is False
 
 
+@pytest.mark.parametrize("status", [200, 403])
+def test_streamed_json_has_a_decoded_body_limit(http, status):
+    http.return_value = response(status, {"message": "x" * 100})
+    result = server.gh("/repos/a/b", max_bytes=30)
+    assert result["error_code"] == "RESPONSE_TOO_LARGE"
+    assert http.call_args.kwargs["stream"] is True
+    assert http.call_count == 1
+
+
+def test_streamed_json_success_and_bad_json(http):
+    assert server.gh("/repos/a/b", max_bytes=100) == {"ok": True}
+    http.return_value._content = b"not json"
+    assert server.gh("/repos/a/b", max_bytes=100)["error_code"] == "MALFORMED_RESPONSE"
+
+
+def test_bounded_stream_stops_and_closes_at_limit(http):
+    result = response()
+    chunks = iter([b"x" * 20, b"x" * 20, b"never read"])
+    result.iter_content = Mock(return_value=chunks)
+    result.close = Mock()
+    http.return_value = result
+    assert server.gh("/repos/a/b", max_bytes=30)["error_code"] == "RESPONSE_TOO_LARGE"
+    assert next(chunks) == b"never read"
+    result.close.assert_called_once()
+
+
+def test_credentials_are_refreshed_between_bounded_requests(http, monkeypatch):
+    server.gh("/repos/a/b", max_bytes=100)
+    monkeypatch.setenv("GITHUB_TOKEN", "replacement-credential")
+    server.gh("/repos/a/b", max_bytes=100)
+    assert (
+        http.call_args_list[0].kwargs["headers"]["Authorization"]
+        == "Bearer test-credential"
+    )
+    assert (
+        http.call_args_list[1].kwargs["headers"]["Authorization"]
+        == "Bearer replacement-credential"
+    )
+
+
 def test_transient_failures_retry_with_a_bound(http):
     http.side_effect = [requests.Timeout("test-credential")] * 3
     result = server.gh("/repos/a/b")
