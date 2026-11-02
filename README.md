@@ -106,7 +106,7 @@ chosen SHA before treating them as evidence.
 The internal acquisition API prepares temporary source files for future graph
 analysis; it adds no MCP tool or graph dependency yet. It resolves a commit once,
 reads its Git tree and blob objects, and verifies downloaded blob identities.
-It creates regular, non-executable files and never extracts archives, follows
+It stages regular files without preserving Git executable modes and never extracts archives, follows
 symlinks/submodules, or runs repository code, tests, hooks, or installers.
 
 The initial profile includes `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, and `.cjs`
