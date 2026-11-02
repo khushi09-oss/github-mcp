@@ -1,8 +1,8 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. It provides five
-tools: repository details, user repositories, directory browsing, file reading,
-and code search. This project is independent of GitHub.
+A local, read-only MCP server for exploring GitHub repositories. Its seven tools
+provide repository details, browsing, search, and commit-pinned file reading with
+source links and continuation. This project is independent of GitHub.
 
 ## Install from this checkout
 
@@ -49,7 +49,7 @@ Supply `GITHUB_TOKEN` through the client's secret/environment settings. It must
 reach the server process. GitHub credentials are read from the process environment,
 not `.env` files. Never put real credentials into committed configuration. Use the narrowest GitHub token
 permissions needed for the repositories you want to inspect. Discovery/listing
-of MCP tools does not require a token; GitHub operations currently expect one.
+of MCP tools does not require a token; public reads can run anonymously.
 The token determines which private repositories the tools can access.
 
 ## Tools
@@ -61,9 +61,43 @@ The token determines which private repositories the tools can access.
 | `list_repo_contents` | List files/folders at a repository path |
 | `read_file` | Read a file, returning at most 3,000 characters |
 | `search_code` | Search code with page controls (10 matches by default) |
+| `resolve_revision` | Resolve a branch/tag (`HEAD` by default) to a full commit SHA |
+| `read_file_lines` | Read bounded UTF-8 lines at a commit with source links |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
+
+For consistent evidence across files, call `resolve_revision(owner, repo, ref)`
+once and pass its `data.commit_sha` as `ref` to every `read_file_lines` call.
+Line numbers start at 1; `start_line=1` and `line_count=100` are the defaults
+(maximum 200 lines). A symbolic ref is resolved once per call; separate calls
+using a branch name can see different commits.
+
+These two new tools advertise output schemas and return `{data, error}` in MCP
+`structuredContent`, also mirrored as JSON text. Exactly one field is non-null;
+execution errors set `isError=true`. File data includes repository, commit/blob
+SHAs, path, line range, total lines, text, and a commit-pinned GitHub URL.
+When `data.continuation` is non-null, pass that entire object as the next
+`read_file_lines` arguments. It includes the pinned commit, preventing mixed
+revisions even when a branch moves. An empty file returns text `""`, end line 0,
+and no continuation.
+
+Only base64-encoded UTF-8 files up to 1,000,000 bytes are supported; NUL-containing
+files are rejected. Output contains at most 12,000 text characters and whole
+LF-delimited lines (CRLF preserved). A single oversized line returns
+`LINE_TOO_LONG`; it is never silently skipped. Paths must be repository-relative
+POSIX paths without empty/dot segments or backslashes. Limit checks happen after
+the HTTP JSON download; total transport/body budgets remain future work.
+GitHub Contents semantics apply, including its handling of symlink targets.
+Errors include `INVALID_PATH`, `INVALID_REF`, `INVALID_REPOSITORY`, `INVALID_RANGE`,
+`UNSUPPORTED_FILE`, `INVALID_RESPONSE`, and categorized request errors (with a
+retry hint when applicable). No cache or local snapshot is persisted.
+
+The original five tools retain their text interfaces and defaults. `read_file`
+still truncates at 3,000 characters and reads the default branch. Directory
+browsing is also unpinned. Code search uses GitHub's index/default-branch rules,
+not an arbitrary commit; verify search matches with `read_file_lines` at your
+chosen SHA before treating them as evidence.
 
 ## Compatibility and limitations
 
@@ -95,8 +129,7 @@ Authentication, permission, not-found, invalid request, transport and malformed
 response failures are reported without echoing HTTP bodies or exception details.
 Public operations can run without a token; code search requires GitHub
 authentication. Redirects are not followed; use a repository's canonical name if
-it moved. Repository reads are not yet pinned to a revision, file output remains
-limited to 3,000 characters, and binary/large-file support is limited. This build
+it moved. Binary/large-file support is limited. This build
 is intended for local development, not unattended production use.
 
 ## Development checks

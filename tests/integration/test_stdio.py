@@ -12,7 +12,7 @@ from mcp.client.stdio import stdio_client
 
 
 class StdioTests(unittest.IsolatedAsyncioTestCase):
-    async def test_installed_entrypoints_expose_five_tools(self):
+    async def test_installed_entrypoints_expose_seven_tools(self):
         executable = Path(sys.executable).with_name(
             "github-mcp.exe" if os.name == "nt" else "github-mcp"
         )
@@ -45,6 +45,8 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                                     "list_repo_contents",
                                     "read_file",
                                     "search_code",
+                                    "resolve_revision",
+                                    "read_file_lines",
                                 },
                             )
                             for tool in tools:
@@ -52,3 +54,17 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                             # Missing arguments fail validation without an API call.
                             result = await session.call_tool("read_file", {})
                             self.assertTrue(result.isError)
+                            reader = next(
+                                t for t in tools if t.name == "read_file_lines"
+                            )
+                            self.assertIsNotNone(reader.outputSchema)
+                            self.assertTrue(reader.annotations.readOnlyHint)
+                            result = await session.call_tool(
+                                "read_file_lines",
+                                {"owner": "a", "repo": "b", "path": "../secret"},
+                            )
+                            self.assertTrue(result.isError)
+                            self.assertEqual(
+                                result.structuredContent["error"]["code"],
+                                "INVALID_PATH",
+                            )
