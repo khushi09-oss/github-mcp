@@ -114,6 +114,28 @@ browsing is also unpinned. Code search uses GitHub's index/default-branch rules,
 not an arbitrary commit; verify search matches with `read_file_lines` at your
 chosen SHA before treating them as evidence.
 
+## Optional small-change companion
+
+Clients that support MCP prompts can request `prepare_small_change(owner, repo,
+change_request, ref="HEAD", focus_path="")`. It returns a workflow for finding
+reusable code, inspecting potential callers and nearby tests, and proposing a
+small change with assumptions and validation. The change request is limited to
+500 characters without controls. Getting the prompt makes no GitHub requests,
+does not run tools, and needs neither a token nor the analysis extra. Following
+its graph/walkthrough steps requires the analysis extra and repository access.
+
+The workflow pins all source reads to one SHA, preserves relationship confidence,
+and distinguishes verified tests from proposed coverage. Search/list discovery is
+unpinned and must be verified with pinned line reads. Validation commands are
+recommendations, never claims that tests ran. The server remains read-only;
+client behavior and prompt support vary, and the prompt grants no new permissions.
+
+The original [repository-guide skill instructions](src/github_mcp/skills/repository-guide/SKILL.md)
+also ship inside the Python package. You can read them or explicitly copy that
+folder to a compatible client's skill directory. Nothing is auto-installed or
+activated in your client; no upstream skill text or executable helpers are bundled.
+For learning-only use, follow its reading/diagram steps and stop before the plan.
+
 ## Guided source walkthroughs
 
 `build_repository_walkthrough(owner, repo, question, ref="HEAD", focus_path="",

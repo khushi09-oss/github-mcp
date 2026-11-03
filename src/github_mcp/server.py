@@ -3,7 +3,7 @@ from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ToolAnnotations
 
-from github_mcp import context, diagrams, graph, snapshots
+from github_mcp import companion, context, diagrams, graph, snapshots
 from github_mcp.github import gh
 from github_mcp.models import (
     ArchitectureDiagram,
@@ -18,6 +18,18 @@ mcp = FastMCP("GitHub MCP")
 READ_ONLY = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
+
+
+@mcp.prompt(title="Prepare a small source change")
+def prepare_small_change(
+    owner: str, repo: str, change_request: str, ref: str = "HEAD", focus_path: str = ""
+) -> str:
+    """Optional read-only workflow for reuse, callers, tests and a cited change plan.
+
+    Getting this prompt performs no GitHub reads or tool execution. The client
+    chooses whether to follow it; it does not authorize edits or execution.
+    """
+    return companion.prepare_change(owner, repo, change_request, ref, focus_path)
 
 
 @mcp.tool(title="Build guided repository walkthrough", annotations=READ_ONLY)
