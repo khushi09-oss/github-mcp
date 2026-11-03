@@ -36,6 +36,28 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                         async with ClientSession(read, write) as session:
                             initialized = await session.initialize()
                             self.assertEqual(initialized.serverInfo.name, "GitHub MCP")
+                            prompts = (await session.list_prompts()).prompts
+                            self.assertEqual(
+                                [p.name for p in prompts], ["prepare_small_change"]
+                            )
+                            required = {
+                                a.name for a in prompts[0].arguments if a.required
+                            }
+                            self.assertEqual(
+                                required, {"owner", "repo", "change_request"}
+                            )
+                            prepared = await session.get_prompt(
+                                "prepare_small_change",
+                                {
+                                    "owner": "a",
+                                    "repo": "b",
+                                    "change_request": "reuse token validation",
+                                },
+                            )
+                            self.assertIn(
+                                "query_repository_graph",
+                                prepared.messages[0].content.text,
+                            )
                             tools = (await session.list_tools()).tools
                             self.assertEqual(
                                 {tool.name for tool in tools},

@@ -17,6 +17,12 @@ class DistributionTests(unittest.TestCase):
         with zipfile.ZipFile(wheels[0]) as archive:
             files = [PurePosixPath(name) for name in archive.namelist()]
         self.assertTrue(any(path.name == "server.py" for path in files))
+        guide = PurePosixPath("github_mcp/skills/repository-guide/SKILL.md")
+        self.assertIn(guide, files)
+        with zipfile.ZipFile(wheels[0]) as archive:
+            self.assertEqual(
+                archive.read(str(guide)), (root / "src" / str(guide)).read_bytes()
+            )
         for path in files:
             self.assertTrue(
                 path.parts[0] == "github_mcp" or path.parts[0].endswith(".dist-info"),
@@ -31,6 +37,9 @@ class DistributionTests(unittest.TestCase):
             ]
         self.assertIn(PurePosixPath("pyproject.toml"), files)
         self.assertIn(PurePosixPath("src/github_mcp/server.py"), files)
+        self.assertIn(
+            PurePosixPath("src/github_mcp/skills/repository-guide/SKILL.md"), files
+        )
         for path in files:
             self.assertTrue(
                 path.parts[:2] == ("src", "github_mcp")
