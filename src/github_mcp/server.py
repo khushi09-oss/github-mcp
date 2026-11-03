@@ -3,15 +3,43 @@ from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ToolAnnotations
 
-from github_mcp import graph, snapshots
+from github_mcp import diagrams, graph, snapshots
 from github_mcp.github import gh
-from github_mcp.models import FileChunk, GraphView, Result, Revision
+from github_mcp.models import (
+    ArchitectureDiagram,
+    FileChunk,
+    GraphView,
+    Result,
+    Revision,
+)
 
 mcp = FastMCP("GitHub MCP")
 
 READ_ONLY = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
+
+
+@mcp.tool(title="Create source architecture diagram", annotations=READ_ONLY)
+async def create_architecture_diagram(
+    owner: str,
+    repo: str,
+    ref: str = "HEAD",
+    focus_path: str = "",
+    max_nodes: int = 30,
+    max_edges: int = 60,
+) -> Annotated[CallToolResult, Result[ArchitectureDiagram]]:
+    """Create Mermaid source + text alternative from commit-pinned source relationships.
+
+    Requires analysis extra. Overview or file-focused view, at most 30 nodes/60 edges.
+    Includes evidence, legend, scope, omissions and reading order. Client rendering
+    varies; no SVG export or runtime/deployment architecture is inferred.
+    """
+    return (
+        await diagrams.create_diagram(
+            owner, repo, ref, focus_path, max_nodes, max_edges
+        )
+    ).as_mcp()
 
 
 @mcp.tool(title="Query repository source graph", annotations=READ_ONLY)
