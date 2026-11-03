@@ -28,16 +28,18 @@ async def create_architecture_diagram(
     focus_path: str = "",
     max_nodes: int = 30,
     max_edges: int = 60,
+    include_svg: bool = False,
 ) -> Annotated[CallToolResult, Result[ArchitectureDiagram]]:
     """Create Mermaid source + text alternative from commit-pinned source relationships.
 
     Requires analysis extra. Overview or file-focused view, at most 30 nodes/60 edges.
-    Includes evidence, legend, scope, omissions and reading order. Client rendering
-    varies; no SVG export or runtime/deployment architecture is inferred.
+    Includes evidence, legend, scope, omissions and reading order. include_svg=True
+    opts into local static SVG (svg extra); failures retain source alternatives and
+    svg_error. Client support varies; no runtime/deployment architecture is inferred.
     """
     return (
         await diagrams.create_diagram(
-            owner, repo, ref, focus_path, max_nodes, max_edges
+            owner, repo, ref, focus_path, max_nodes, max_edges, include_svg=include_svg
         )
     ).as_mcp()
 

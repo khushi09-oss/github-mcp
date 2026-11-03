@@ -111,3 +111,19 @@ class ArchitectureDiagram(GraphView):
     text: str = Field(max_length=100_000)
     reading_order: list[str]
     legend: list[str]
+    svg_status: Literal["not_requested", "ready", "unavailable"] = "not_requested"
+    svg: str | None = Field(default=None, max_length=500_000)
+    svg_renderer: Literal["mmdr==0.4.0/mermaid-rs-renderer"] | None = None
+    svg_error: ToolError | None = None
+
+    @model_validator(mode="after")
+    def svg_state(self) -> "ArchitectureDiagram":
+        ready = self.svg_status == "ready"
+        unavailable = self.svg_status == "unavailable"
+        if (
+            ready != (self.svg is not None)
+            or ready != (self.svg_renderer is not None)
+            or unavailable != (self.svg_error is not None)
+        ):
+            raise ValueError("Inconsistent SVG status and artifact")
+        return self

@@ -163,7 +163,55 @@ malicious-label fixtures. No Node/browser dependency is needed to run the server
 Mermaid plus text is capped at 100,000 UTF-8 bytes; lower node/edge limits on
 `DIAGRAM_LIMIT`. Mismatched/unpinned source links fail as `DIAGRAM_INVALID_SOURCE`.
 Graph/acquisition errors propagate unchanged. Metadata/legend annotations do not
-count toward the source-node cap. SVG export remains separate follow-up work.
+count toward the source-node cap.
+
+## Optional SVG export
+
+Install the locked SVG profile (includes graph analysis):
+
+```powershell
+uv sync --locked --extra svg
+```
+
+Call `create_architecture_diagram` with `include_svg=true`. The default remains
+Mermaid/text. The response adds `svg_status` (`not_requested`, `ready`, or
+`unavailable`), `svg`, `svg_renderer`, and `svg_error`. When ready, save the UTF-8
+`svg` string as an `.svg` file using your client. The original `format="mermaid"`
+and source fields remain available. SVG failure is partial success: the tool
+retains its diagram data with `svg_status="unavailable"` and an explicit error,
+rather than marking an absent SVG as ready. Graph/acquisition failures still use
+the normal top-level error envelope.
+
+Rendering uses pinned `mmdr==0.4.0`, its `mermaid-rs-renderer` backend and native
+Windows wheels. Node/Chromium and external rendering services are not required.
+This renderer's appearance can differ from a client's Mermaid renderer. File
+groups, source relationships, confidence and pinned links use the same graph.
+A compact metadata header identifies repository, ref, scope and commit. SVG title,
+description and text-only JSON metadata preserve provenance and source alternatives.
+The file contains graph metadata and should be handled like the source diagram;
+it does not embed file contents or credentials.
+
+The renderer runs in the existing single-job isolated-process boundary, with no
+GitHub/model credentials, a 20-second render deadline and a 1 GiB memory budget.
+Rendering time is additional to acquisition; clients with shorter timeouts may
+cancel before export completes. Failure, timeout or an unavailable extra keeps
+the Mermaid/text fallback. Normal cancellation reaps the worker before cleanup.
+No caller-controlled output path or reusable file handle is exposed.
+
+Output is capped at 500,000 UTF-8 bytes and validated again in the parent before
+returning canonical XML. The static SVG allowlist rejects scripts, event handlers,
+HTML/foreign objects, images, embedded CSS, external resources, animation, entity
+declarations and unknown attributes. Only exact pinned GitHub source links are
+allowed; link targets receive `noopener noreferrer`. Geometry, nesting, element
+counts and viewport size are bounded. XML processing instructions are discarded
+by canonical serialization. Unsupported output falls back with `SVG_UNSAFE`.
+
+Other SVG errors include `SVG_UNAVAILABLE`, `SVG_VERSION`, `SVG_BUSY`,
+`SVG_TIMEOUT`, `SVG_RESOURCE_LIMIT` and `SVG_OUTPUT_LIMIT`. Lower node/edge limits
+for complex diagrams. This is resource isolation and static output validation,
+not an OS sandbox. Windows x64/Python 3.12 is verified; other platforms are unverified.
+
+## Execution limits and errors
 
 Graph queries run one worker per server process, with a 45-second worker deadline,
 a 1 GiB process memory budget and a 1,000,000-byte result cap. Additional concurrent
@@ -271,10 +319,14 @@ uv run --locked pip-audit --disable-pip --require-hashes --strict -r dist/audit-
 ```
 
 Validate optional graph support with `uv run --locked --extra analysis pytest`.
+Validate SVG support with `uv run --locked --extra svg pytest`.
 The base suite checks missing-extra behavior; the analysis suite exercises the
 real extractor on synthetic cross-file fixtures. Neither suite calls GitHub or
 runs fixture code. To audit analysis dependencies too, add `--extra analysis` to
-the `uv export` command above and audit the resulting hashed requirements.
+the `uv export` command above and audit the resulting hashed requirements. Use
+`--extra svg` instead to include the SVG profile. Binary-wheel installation was
+also checked in a fresh Windows environment using the exported locked runtime
+requirements and the built wheel; no compiler toolchain was needed.
 
 Build before testing: the suite checks package archives as well as tool behavior
 and both installed entry points. Tests require no GitHub token, GitHub API calls,
