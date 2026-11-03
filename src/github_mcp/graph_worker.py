@@ -9,6 +9,7 @@ from importlib import import_module
 from pathlib import Path
 
 from github_mcp.acquisition import Snapshot, SnapshotError, acquire_snapshot
+from github_mcp.context import Walkthrough, from_snapshot
 from github_mcp.graph import MAX_OUTPUT, error, normalize
 from github_mcp.models import GraphView, Result
 from github_mcp.worker_limits import limit_memory
@@ -40,7 +41,7 @@ def extract_snapshot(
     return Result(data=normalize(raw, snapshot, focus, max_nodes, max_edges))
 
 
-def execute(directory: Path) -> Result[GraphView]:
+def execute(directory: Path) -> Result[GraphView] | Result[Walkthrough]:
     try:
         limit_memory()
         if importlib.metadata.version("graphifyy") != "0.9.100":
@@ -61,6 +62,8 @@ def execute(directory: Path) -> Result[GraphView]:
             os.environ.pop("GITHUB_TOKEN", None)
             sys.addaudithook(offline)
             os.environ["GRAPHIFY_OUT"] = "graphify-out"
+            if request.get("mode") == "walkthrough":
+                return from_snapshot(snapshot, directory, request)
             return extract_snapshot(
                 snapshot,
                 directory,

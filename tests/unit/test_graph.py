@@ -216,8 +216,9 @@ def test_invalid_focus_or_limits_never_spawn(monkeypatch, inputs):
     spawn.assert_not_called()
 
 
+@pytest.mark.parametrize("walkthrough", [False, True])
 def test_worker_uses_owned_workspace_and_clears_credentials(
-    snapshot, monkeypatch, tmp_path
+    snapshot, monkeypatch, tmp_path, walkthrough
 ):
     from contextlib import contextmanager
 
@@ -227,7 +228,13 @@ def test_worker_uses_owned_workspace_and_clears_credentials(
     (tmp_path / "input.json").write_text(
         json.dumps(
             dict(
-                owner="a", repo="b", ref=SHA, focus_path="", max_nodes=30, max_edges=60
+                owner="a",
+                repo="b",
+                ref=SHA,
+                focus_path="",
+                max_nodes=30,
+                max_edges=60,
+                mode="walkthrough" if walkthrough else "graph",
             )
         )
     )
@@ -249,5 +256,6 @@ def test_worker_uses_owned_workspace_and_clears_credentials(
         return Result(data=graph.normalize(raw_graph(), snapshot, "", 30, 60))
 
     monkeypatch.setattr(graph_worker, "extract_snapshot", extract)
+    monkeypatch.setattr(graph_worker, "from_snapshot", extract)
     assert graph_worker.execute(tmp_path).data.commit_sha == SHA
     audit.assert_called_once_with(graph_worker.offline)

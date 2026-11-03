@@ -16,6 +16,12 @@ def test_real_optional_engine_cross_file_evidence(tmp_path):
 
         result = asyncio.run(query_graph("a", "b"))
         assert result.error.code == "GRAPH_UNAVAILABLE"
+        from github_mcp.context import create_walkthrough
+
+        assert (
+            asyncio.run(create_walkthrough("a", "b", "normalize")).error.code
+            == "GRAPH_UNAVAILABLE"
+        )
         return
     root = tmp_path / "source"
     files = []
@@ -35,7 +41,15 @@ def test_real_optional_engine_cross_file_evidence(tmp_path):
         for filename, content in [(f"helpers.{ext}", helper), (f"main.{ext}", main)]:
             (folder / filename).write_text(content, encoding="utf-8")
             files.append(f"{language}/{filename}")
-    snapshot = Snapshot(root, "a/b", "a" * 40, tuple(sorted(files)), {}, 0, {})
+    snapshot = Snapshot(
+        root,
+        "a/b",
+        "a" * 40,
+        tuple(sorted(files)),
+        {path: "b" * 40 for path in files},
+        0,
+        {},
+    )
     first = extract_snapshot(snapshot, tmp_path / "cache", "", 50, 100).data
     second = extract_snapshot(snapshot, tmp_path / "cache", "", 50, 100).data
     assert first == second
@@ -47,6 +61,30 @@ def test_real_optional_engine_cross_file_evidence(tmp_path):
     }
     assert all(first.commit_sha in e.evidence.source_url for e in calls)
     assert str(tmp_path) not in first.model_dump_json()
+    from github_mcp.context import from_snapshot
+
+    walkthrough = from_snapshot(
+        snapshot,
+        tmp_path / "cache",
+        dict(
+            owner="a",
+            repo="b",
+            ref="main",
+            question="normalize",
+            focus_path="python/main.py",
+            max_steps=8,
+            start_step=0,
+        ),
+    ).data
+    assert walkthrough.steps[0].evidence.path == "python/main.py"
+    assert walkthrough.matched_files == 6
+    assert walkthrough.diagram.edges
+    assert all(
+        step.evidence.source_url.startswith(
+            f"https://github.com/a/b/blob/{snapshot.commit_sha}/"
+        )
+        for step in walkthrough.steps
+    )
 
 
 def test_memory_limit_in_a_separate_process():

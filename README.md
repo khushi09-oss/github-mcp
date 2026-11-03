@@ -1,6 +1,6 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. Its nine tools
+A local, read-only MCP server for exploring GitHub repositories. Its ten tools
 provide repository details, browsing, search, and commit-pinned file reading with
 source links and continuation. This project is independent of GitHub.
 
@@ -75,6 +75,7 @@ The token determines which private repositories the tools can access.
 | `read_file_lines` | Read bounded UTF-8 lines at a commit with source links |
 | `query_repository_graph` | Inspect definitions/imports/calls with source evidence (analysis extra) |
 | `create_architecture_diagram` | Create Mermaid source views with pinned links and a text alternative |
+| `build_repository_walkthrough` | Bundle a question-focused reading path, excerpts and diagram (analysis extra) |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -112,6 +113,33 @@ still truncates at 3,000 characters and reads the default branch. Directory
 browsing is also unpinned. Code search uses GitHub's index/default-branch rules,
 not an arbitrary commit; verify search matches with `read_file_lines` at your
 chosen SHA before treating them as evidence.
+
+## Guided source walkthroughs
+
+`build_repository_walkthrough(owner, repo, question, ref="HEAD", focus_path="",
+max_steps=5, start_step=0)` returns a suggested reading path, exact source excerpts
+and a focused Mermaid/text diagram from one acquired commit. Requires the analysis
+extra. Example question: "Where is token validation handled?" Include an exact
+`focus_path` when you know the entry file. The client explains the evidence; the
+server uses no model and never executes repository code.
+
+Ranking matches question words against paths and source text, with path matches
+weighted higher and an explicit focus first. Camel-case identifiers are split.
+This is a lexical heuristic: comments can outrank implementation and synonyms may
+be missed. Each step has a reason, blob SHA and commit-pinned line citation.
+Empty files have no excerpt. Coverage and gaps are explicit; the diagram can omit
+other reading steps and does not establish execution order.
+
+Pages contain at most eight files, with at most 20 whole LF-delimited lines and
+1,500 characters per excerpt (CRLF preserved). Oversized matching lines have an
+empty excerpt and a gap pointing to the source link. `matched_files` counts ranked
+files; `omitted_steps` counts all ranked files outside the current page. Pass a
+non-null `continuation` verbatim to the same tool: it includes the immutable SHA,
+question, limits and next offset. Each page reacquires that commit; nothing is
+cached. Questions must be 1–500 characters without controls; offsets are 0–100.
+Only acquired Python/JavaScript/TypeScript source is searched. Repository text is
+untrusted data and cannot change server permissions. Existing acquisition, worker,
+memory, timeout and output limits apply. SVG remains a separate diagram-tool option.
 
 ## Source graph queries
 
