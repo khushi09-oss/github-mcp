@@ -1,6 +1,6 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. Its seven tools
+A local, read-only MCP server for exploring GitHub repositories. Its eight tools
 provide repository details, browsing, search, and commit-pinned file reading with
 source links and continuation. This project is independent of GitHub.
 
@@ -12,6 +12,16 @@ This is an early local build, not a published package or hosted endpoint.
 ```powershell
 uv sync --locked
 ```
+
+For optional source-graph analysis, install the locked analysis extra instead:
+
+```powershell
+uv sync --locked --extra analysis
+```
+
+This adds Graphify's code extractor and its dependencies; base retrieval remains
+usable without them. No skills, hooks, model backends or automatic uploads are
+installed or activated. This project is independent of Graphify Labs.
 
 Run the stdio server with either entry point:
 
@@ -63,6 +73,7 @@ The token determines which private repositories the tools can access.
 | `search_code` | Search code with page controls (10 matches by default) |
 | `resolve_revision` | Resolve a branch/tag (`HEAD` by default) to a full commit SHA |
 | `read_file_lines` | Read bounded UTF-8 lines at a commit with source links |
+| `query_repository_graph` | Inspect definitions/imports/calls with source evidence (analysis extra) |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -101,10 +112,52 @@ browsing is also unpinned. Code search uses GitHub's index/default-branch rules,
 not an arbitrary commit; verify search matches with `read_file_lines` at your
 chosen SHA before treating them as evidence.
 
+## Source graph queries
+
+`query_repository_graph(owner, repo, ref="HEAD", focus_path="", max_nodes=30,
+max_edges=60)` returns a typed `GraphView` in the same data/error envelope as
+the revision tools. Pass a full commit SHA to compare queries consistently.
+`focus_path` selects one acquired source file and its immediate neighbors;
+an empty focus selects a bounded overview. Caps are 50 nodes and 100 edges.
+Counts disclose omitted nodes/edges and source files. Narrow the focus to explore
+another area; this view has no cached handle or pagination.
+
+Each node/edge cites a validated source file and line range at the resolved
+commit. Edges preserve direction, relation kind and Graphify's `EXTRACTED`,
+`INFERRED`, or `AMBIGUOUS` confidence. Results identify schema version `1` and
+extractor `graphifyy==0.9.100`. Unverifiable paths/locations are omitted.
+Only the Python, JavaScript and TypeScript fixture workflows have been verified.
+This is a static source graph; it does not establish runtime/deployment
+architecture. Coverage is always incomplete: dynamic calls, external code,
+unsupported syntax and config-dependent resolution may be absent. Missing edges
+cannot prove code is unused. Mermaid architecture diagrams are not implemented yet.
+
+Graph queries run one worker per server process, with a 45-second worker deadline,
+a 1 GiB process memory budget and a 1,000,000-byte result cap. Additional concurrent
+queries return `GRAPH_BUSY`. Cancellation kills/reaps the worker before removing
+its temporary workspace, including acquisition files and parser caches. Worker
+stdout/stderr are discarded, and only normalized fields reach the client.
+The Windows Job Object limits committed memory; the POSIX implementation uses
+`RLIMIT_AS`. Windows/Python 3.12 is verified; Linux/macOS remain unverified.
+If memory limits cannot be installed, analysis fails closed. Process isolation
+and Python audit hooks are not an OS security sandbox.
+
+GitHub retrieval happens before extraction, using the existing token permissions.
+Extraction then removes the token from its environment and denies Python socket
+and process-launch audit events. It never imports or runs acquired source files.
+There is no model processing or shared graph cache. Hard termination of the server
+or cleanup failure may leave temporary files/workers; OS isolation remains the
+local single-user access boundary.
+
+Without the extra, `GRAPH_UNAVAILABLE` explains how to enable it. Other execution
+errors include `GRAPH_VERSION`, `GRAPH_TIMEOUT`, `GRAPH_RESOURCE_LIMIT`,
+`GRAPH_WORKER_FAILED`, `GRAPH_EXTRACTION_FAILED`, `GRAPH_OUTPUT_LIMIT`,
+`FOCUS_NOT_FOUND`, input errors, and categorized GitHub acquisition errors.
+
 ## Snapshot analysis foundation
 
-The internal acquisition API prepares temporary source files for future graph
-analysis; it adds no MCP tool or graph dependency yet. It resolves a commit once,
+The internal acquisition API prepares temporary source files for graph
+analysis. It resolves a commit once,
 reads its Git tree and blob objects, and verifies downloaded blob identities.
 It stages regular files without preserving Git executable modes and never extracts archives, follows
 symlinks/submodules, or runs repository code, tests, hooks, or installers.
@@ -133,7 +186,8 @@ deletes staged files on normal/context-error exit. There is no persistent cache,
 reusable snapshot handle, or cross-request artifact sharing. Files live under the
 server's OS identity; this is local single-user infrastructure. Forced termination
 or storage cleanup failure can leave temporary files; secure the OS temp location.
-Hard whole-operation deadlines and worker cancellation remain future work.
+The graph query's parent process enforces its worker deadline and cancellation.
+Direct use of the internal acquisition API has only socket inactivity timeouts.
 
 ## Compatibility and limitations
 
@@ -182,6 +236,12 @@ uv run --locked pytest
 uv export --locked --no-emit-project --output-file dist/audit-requirements.txt --quiet
 uv run --locked pip-audit --disable-pip --require-hashes --strict -r dist/audit-requirements.txt
 ```
+
+Validate optional graph support with `uv run --locked --extra analysis pytest`.
+The base suite checks missing-extra behavior; the analysis suite exercises the
+real extractor on synthetic cross-file fixtures. Neither suite calls GitHub or
+runs fixture code. To audit analysis dependencies too, add `--extra analysis` to
+the `uv export` command above and audit the resulting hashed requirements.
 
 Build before testing: the suite checks package archives as well as tool behavior
 and both installed entry points. Tests require no GitHub token, GitHub API calls,

@@ -197,7 +197,9 @@ def _read_blob(prefix: str, entry: dict) -> bytes:
 
 
 @contextmanager
-def acquire_snapshot(owner: str, repo: str, ref: str = "HEAD") -> Iterator[Snapshot]:
+def acquire_snapshot(
+    owner: str, repo: str, ref: str = "HEAD", *, temp_parent: Path | None = None
+) -> Iterator[Snapshot]:
     """Yield private source files until context exit; no cross-request cache exists."""
     revision = resolve_revision(owner, repo, ref)
     if revision.error:
@@ -212,7 +214,9 @@ def acquire_snapshot(owner: str, repo: str, ref: str = "HEAD") -> Iterator[Snaps
     downloaded = 0
     download_count = 0
     try:
-        with tempfile.TemporaryDirectory(prefix="github-mcp-") as directory:
+        with tempfile.TemporaryDirectory(
+            prefix="github-mcp-", dir=temp_parent
+        ) as directory:
             root = Path(directory).resolve()
             for entry in entries:
                 if entry["type"] == "tree":
