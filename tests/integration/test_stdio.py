@@ -12,7 +12,7 @@ from mcp.client.stdio import stdio_client
 
 
 class StdioTests(unittest.IsolatedAsyncioTestCase):
-    async def test_installed_entrypoints_expose_eight_tools(self):
+    async def test_installed_entrypoints_expose_nine_tools(self):
         executable = Path(sys.executable).with_name(
             "github-mcp.exe" if os.name == "nt" else "github-mcp"
         )
@@ -48,6 +48,7 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                                     "resolve_revision",
                                     "read_file_lines",
                                     "query_repository_graph",
+                                    "create_architecture_diagram",
                                 },
                             )
                             for tool in tools:
@@ -80,4 +81,19 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(
                                 result.structuredContent["error"]["code"],
                                 "INVALID_REPOSITORY",
+                            )
+                            diagram_tool = next(
+                                t
+                                for t in tools
+                                if t.name == "create_architecture_diagram"
+                            )
+                            self.assertIsNotNone(diagram_tool.outputSchema)
+                            result = await session.call_tool(
+                                "create_architecture_diagram",
+                                {"owner": "a", "repo": "b", "max_nodes": 31},
+                            )
+                            self.assertTrue(result.isError)
+                            self.assertEqual(
+                                result.structuredContent["error"]["code"],
+                                "INVALID_LIMIT",
                             )

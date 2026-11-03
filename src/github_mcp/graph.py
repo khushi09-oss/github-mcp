@@ -10,7 +10,7 @@ import sys
 import tempfile
 import threading
 from collections import Counter
-from pathlib import Path
+from pathlib import Path, PurePosixPath
 from urllib.parse import quote
 
 from github_mcp.acquisition import Snapshot, _safe_path
@@ -144,6 +144,7 @@ def normalize(
         (nodes[k] for k in candidates),
         key=lambda n: (
             bool(focus) and n.evidence.path != focus,
+            not focus and n.label != PurePosixPath(n.evidence.path).name,
             n.evidence.path,
             n.evidence.start_line,
             n.label,

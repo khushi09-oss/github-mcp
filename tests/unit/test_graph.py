@@ -88,6 +88,18 @@ def test_duplicate_raw_ids_cannot_misattribute_edges(snapshot):
     assert view.edges == []
 
 
+def test_overview_keeps_file_breadth_before_symbol_detail(snapshot):
+    raw = raw_graph()
+    raw["nodes"] += [
+        dict(id="file-a", label="a.py", source_file="a.py", source_location="L1"),
+        dict(id="file-b", label="b.py", source_file="b.py", source_location="L1"),
+    ]
+    assert {n.label for n in graph.normalize(raw, snapshot, "", 2, 10).nodes} == {
+        "a.py",
+        "b.py",
+    }
+
+
 def test_invalid_query_never_starts_worker(monkeypatch):
     spawn = Mock()
     monkeypatch.setattr(graph.asyncio, "create_subprocess_exec", spawn)

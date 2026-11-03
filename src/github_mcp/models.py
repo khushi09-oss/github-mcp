@@ -101,3 +101,13 @@ class GraphView(BaseModel):
     nodes: list[GraphNode] = Field(max_length=50)
     edges: list[GraphEdge] = Field(max_length=100)
     coverage: GraphCoverage
+
+
+class ArchitectureDiagram(GraphView):
+    format: Literal["mermaid"] = "mermaid"
+    view: Literal["overview", "focus"]
+    requested_ref: str
+    mermaid: str = Field(max_length=100_000)
+    text: str = Field(max_length=100_000)
+    reading_order: list[str]
+    legend: list[str]
