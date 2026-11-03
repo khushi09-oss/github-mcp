@@ -74,4 +74,5 @@ Revert merged changes through another PR rather than rewriting main history.
 Explain why new dependencies are necessary and verify license/attribution needs.
 Never commit credentials or local environment files. Release publishing and
 deployment are maintainer-controlled actions. Document compatibility changes and
-migrations in user-facing release notes. A project license has not yet been selected.
+migrations in user-facing release notes. This project uses the MIT license;
+preserve third-party licenses and notices when introducing dependencies or copied material.

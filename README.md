@@ -4,6 +4,9 @@ A local, read-only MCP server for exploring GitHub repositories. Its ten tools
 provide repository details, browsing, search, and commit-pinned file reading with
 source links and continuation. This project is independent of GitHub.
 
+Licensed under [MIT](LICENSE). See the [unpublished release evaluation](docs/RELEASE.md)
+and [offline fixture measurements](benchmarks/README.md) for verified scope and limits.
+
 ## Install from this checkout
 
 Requires Python 3.12 or newer and [uv](https://docs.astral.sh/uv/getting-started/installation/).

@@ -16,6 +16,13 @@ class DistributionTests(unittest.TestCase):
 
         with zipfile.ZipFile(wheels[0]) as archive:
             files = [PurePosixPath(name) for name in archive.namelist()]
+            metadata = archive.read("github_mcp-0.1.0.dist-info/METADATA").decode()
+            self.assertIn("License-Expression: MIT", metadata)
+            self.assertIn("License-File: LICENSE", metadata)
+            self.assertEqual(
+                archive.read("github_mcp-0.1.0.dist-info/licenses/LICENSE"),
+                (root / "LICENSE").read_bytes(),
+            )
         self.assertTrue(any(path.name == "server.py" for path in files))
         guide = PurePosixPath("github_mcp/skills/repository-guide/SKILL.md")
         self.assertIn(guide, files)
@@ -52,6 +59,11 @@ class DistributionTests(unittest.TestCase):
                     "CONTRIBUTING.md",
                     ".gitignore",
                     "PKG-INFO",
+                    "LICENSE",
+                    "docs/RELEASE.md",
+                    "benchmarks/evaluate.py",
+                    "benchmarks/README.md",
+                    "benchmarks/fixtures/small.json",
                 },
                 f"Unexpected source archive path: {path}",
             )

@@ -7,6 +7,8 @@ name = "github-mcp"
 version = "0.1.0"
 description = "A local, read-only MCP server for exploring GitHub repositories"
 readme = "README.md"
+license = "MIT"
+license-files = ["LICENSE"]
 requires-python = ">=3.12"
 dependencies = [
     "mcp==1.30.0",
@@ -53,4 +55,6 @@ packages = ["src/github_mcp"]
 only-include = [
     "src/github_mcp", "tests", "pyproject.toml", "uv.lock",
     "README.md", "CONTRIBUTING.md", ".gitignore",
+    "LICENSE", "benchmarks/evaluate.py", "benchmarks/README.md",
+    "benchmarks/fixtures/small.json", "docs/RELEASE.md",
 ]
