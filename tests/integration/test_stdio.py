@@ -12,7 +12,7 @@ from mcp.client.stdio import stdio_client
 
 
 class StdioTests(unittest.IsolatedAsyncioTestCase):
-    async def test_installed_entrypoints_expose_seven_tools(self):
+    async def test_installed_entrypoints_expose_eight_tools(self):
         executable = Path(sys.executable).with_name(
             "github-mcp.exe" if os.name == "nt" else "github-mcp"
         )
@@ -47,6 +47,7 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                                     "search_code",
                                     "resolve_revision",
                                     "read_file_lines",
+                                    "query_repository_graph",
                                 },
                             )
                             for tool in tools:
@@ -67,4 +68,16 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                             self.assertEqual(
                                 result.structuredContent["error"]["code"],
                                 "INVALID_PATH",
+                            )
+                            graph_tool = next(
+                                t for t in tools if t.name == "query_repository_graph"
+                            )
+                            self.assertIsNotNone(graph_tool.outputSchema)
+                            result = await session.call_tool(
+                                "query_repository_graph", {"owner": "../a", "repo": "b"}
+                            )
+                            self.assertTrue(result.isError)
+                            self.assertEqual(
+                                result.structuredContent["error"]["code"],
+                                "INVALID_REPOSITORY",
                             )

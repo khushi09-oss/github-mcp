@@ -13,6 +13,9 @@ dependencies = [
     "requests==2.33.0",
 ]
 
+[project.optional-dependencies]
+analysis = ["graphifyy==0.9.100"]
+
 [project.scripts]
 github-mcp = "github_mcp.__main__:main"
 
