@@ -186,7 +186,13 @@ def normalize(
     )
 
 
-async def _run_job(directory: Path) -> int:
+async def _run_job(
+    directory: Path,
+    *,
+    worker: str = "github_mcp.graph_worker",
+    timeout: float | None = None,
+    github_token: bool = True,
+) -> int:
     env = {
         k: v
         for k, v in os.environ.items()
@@ -208,12 +214,14 @@ async def _run_job(directory: Path) -> int:
     env.update(
         OPENBLAS_NUM_THREADS="1", OMP_NUM_THREADS="1", GRAPHIFY_OUT="graphify-out"
     )
+    if not github_token:
+        env.pop("GITHUB_TOKEN", None)
     launch = asyncio.create_task(
         asyncio.create_subprocess_exec(
             sys.executable,
             "-I",
             "-m",
-            "github_mcp.graph_worker",
+            worker,
             str(directory),
             cwd=directory,
             env=env,
@@ -226,7 +234,9 @@ async def _run_job(directory: Path) -> int:
     process = None
     try:
         process = await asyncio.shield(launch)
-        return await asyncio.wait_for(process.wait(), timeout=TIMEOUT)
+        return await asyncio.wait_for(
+            process.wait(), timeout=TIMEOUT if timeout is None else timeout
+        )
     finally:
         # Await spawning even on cancellation so no orphan survives cleanup.
         if process is None:

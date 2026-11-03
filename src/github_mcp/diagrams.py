@@ -164,6 +164,7 @@ async def create_diagram(
     focus_path: str = "",
     max_nodes: int = 30,
     max_edges: int = 60,
+    include_svg: bool = False,
 ) -> Result[ArchitectureDiagram]:
     if (
         type(max_nodes) is not int
@@ -182,7 +183,22 @@ async def create_diagram(
         return Result(error=result.error)
     assert result.data is not None
     try:
-        return Result(data=build_diagram(result.data, ref))
+        artifact = build_diagram(result.data, ref)
+        if include_svg:
+            from github_mcp.svg import RENDERER, render_svg
+
+            rendered = await render_svg(artifact)
+            artifact = artifact.model_copy(
+                update={
+                    "svg_status": "ready"
+                    if rendered.data is not None
+                    else "unavailable",
+                    "svg": rendered.data,
+                    "svg_error": rendered.error,
+                    "svg_renderer": RENDERER if rendered.data is not None else None,
+                }
+            )
+        return Result(data=artifact)
     except DiagramLimit:
         return Result(
             error=ToolError(
