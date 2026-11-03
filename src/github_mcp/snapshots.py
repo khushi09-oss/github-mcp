@@ -51,7 +51,9 @@ def resolve_revision(owner: str, repo: str, ref: str = "HEAD") -> Result[Revisio
     if error := _validate(owner, repo, ref):
         return error
     data = gh(
-        f"/repos/{owner}/{repo}/commits/{quote(ref, safe='')}", params={"per_page": 1}
+        f"/repos/{owner}/{repo}/commits/{quote(ref, safe='')}",
+        params={"per_page": 1},
+        max_bytes=2_000_000,
     )
     if error := _api_error(data):
         return error
@@ -109,7 +111,9 @@ def read_file_lines(
         assert revision.data is not None
         sha = revision.data.commit_sha
     data = gh(
-        f"/repos/{owner}/{repo}/contents/{quote(path, safe='/')}", params={"ref": sha}
+        f"/repos/{owner}/{repo}/contents/{quote(path, safe='/')}",
+        params={"ref": sha},
+        max_bytes=2_000_000,
     )
     if error := _api_error(data):
         return error

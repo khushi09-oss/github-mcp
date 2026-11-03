@@ -86,8 +86,10 @@ Only base64-encoded UTF-8 files up to 1,000,000 bytes are supported; NUL-contain
 files are rejected. Output contains at most 12,000 text characters and whole
 LF-delimited lines (CRLF preserved). A single oversized line returns
 `LINE_TOO_LONG`; it is never silently skipped. Paths must be repository-relative
-POSIX paths without empty/dot segments or backslashes. Limit checks happen after
-the HTTP JSON download; total transport/body budgets remain future work.
+POSIX paths without empty/dot segments or backslashes. Revision resolution and
+line reads each cap streamed, decompressed JSON at 2,000,000 bytes before parsing;
+file size/type checks follow parsing. Oversized responses return
+`RESPONSE_TOO_LARGE`. Timeouts remain socket inactivity bounds.
 GitHub Contents semantics apply, including its handling of symlink targets.
 Errors include `INVALID_PATH`, `INVALID_REF`, `INVALID_REPOSITORY`, `INVALID_RANGE`,
 `UNSUPPORTED_FILE`, `INVALID_RESPONSE`, and categorized request errors (with a
@@ -98,6 +100,40 @@ still truncates at 3,000 characters and reads the default branch. Directory
 browsing is also unpinned. Code search uses GitHub's index/default-branch rules,
 not an arbitrary commit; verify search matches with `read_file_lines` at your
 chosen SHA before treating them as evidence.
+
+## Snapshot analysis foundation
+
+The internal acquisition API prepares temporary source files for future graph
+analysis; it adds no MCP tool or graph dependency yet. It resolves a commit once,
+reads its Git tree and blob objects, and verifies downloaded blob identities.
+It stages regular files without preserving Git executable modes and never extracts archives, follows
+symlinks/submodules, or runs repository code, tests, hooks, or installers.
+
+The initial profile includes `.py`, `.js`, `.jsx`, `.ts`, `.tsx`, `.mjs`, and `.cjs`
+UTF-8 source files without NUL bytes. It skips common generated/vendor directories
+(`.git`, `.venv`, `venv`, `node_modules`, `vendor`, `dist`, `build`, `__pycache__`)
+and private directories (`.ssh`, `.aws`, `.local`), plus any path component named
+`secrets`/`credentials` or starting with `.env`, `secrets.`, `credentials.`,
+`id_rsa`, or `id_ed25519`. These are filename
+rules, not secret detection; ordinary source may contain credentials. Repository
+`.gitignore` rules are not interpreted; this profile operates on tracked Git files.
+Other extensions, including upstream control/config files, are omitted.
+
+Limits: 10,000 tree entries, 100 blob downloads, 1,000,000 bytes per file, and
+5,000,000 downloaded file bytes per acquisition. Binary files still consume
+download budgets. JSON response caps are 2 MB for revision/blob reads, 100 KB for
+the pinned Git commit object, and 4 MB for the recursive tree (decimal units).
+Truncated trees fail explicitly. Other omissions are counted by reason, with
+deterministic path ordering. Unsafe paths or corrupt responses abort acquisition.
+Portable paths are limited to 180 characters, 20 components and 100 characters
+per component; Windows device names, case collisions and non-NFC paths fail.
+
+Each acquisition uses a unique OS temporary directory, rechecks GitHub access and
+deletes staged files on normal/context-error exit. There is no persistent cache,
+reusable snapshot handle, or cross-request artifact sharing. Files live under the
+server's OS identity; this is local single-user infrastructure. Forced termination
+or storage cleanup failure can leave temporary files; secure the OS temp location.
+Hard whole-operation deadlines and worker cancellation remain future work.
 
 ## Compatibility and limitations
 

@@ -1,5 +1,6 @@
 """Bounded, read-only access to the fixed GitHub API origin."""
 
+import json
 import math
 import os
 import time
@@ -37,7 +38,24 @@ def _rate_delay(headers: Mapping[str, str]) -> int:
     return max(delays) if delays else 60
 
 
-def gh(path: str, params: dict | None = None) -> dict | list:
+class _ResponseTooLarge(ValueError):
+    pass
+
+
+def _json(res: requests.Response, max_bytes: int | None):
+    if max_bytes is None:
+        return res.json()
+    body = bytearray()
+    for chunk in res.iter_content(chunk_size=min(max_bytes + 1, 65536)):
+        if len(body) + len(chunk) > max_bytes:
+            raise _ResponseTooLarge
+        body.extend(chunk)
+    return json.loads(body)
+
+
+def gh(
+    path: str, params: dict | None = None, *, max_bytes: int | None = None
+) -> dict | list:
     """Return JSON or a sanitized error; never retry a long rate-limit wait."""
     headers = {
         "Accept": "application/vnd.github+json",
@@ -56,11 +74,14 @@ def gh(path: str, params: dict | None = None) -> dict | list:
                 params=params,
                 timeout=TIMEOUT,
                 allow_redirects=False,
+                stream=max_bytes is not None,
             ) as res:
                 if res.status_code == 200:
                     try:
-                        data = res.json()
-                    except ValueError:
+                        data = _json(res, max_bytes)
+                    except _ResponseTooLarge:
+                        raise
+                    except (ValueError, RecursionError):
                         data = None
                     if isinstance(data, (dict, list)):
                         return data
@@ -71,13 +92,15 @@ def gh(path: str, params: dict | None = None) -> dict | list:
                 secondary = False
                 if res.status_code == 403:
                     try:
-                        data = res.json()
+                        data = _json(res, max_bytes)
                         secondary = (
                             isinstance(data, dict)
                             and "secondary rate limit"
                             in str(data.get("message", "")).lower()
                         )
-                    except ValueError:
+                    except _ResponseTooLarge:
+                        raise
+                    except (ValueError, RecursionError):
                         pass
                 if res.status_code == 429 or (
                     res.status_code == 403
@@ -122,6 +145,11 @@ def gh(path: str, params: dict | None = None) -> dict | list:
                         error["retry_after_seconds"] = delay
                         error["error"] = f"{message}; retry in {delay} seconds"
                         retryable = delay <= MAX_WAIT
+        except _ResponseTooLarge:
+            return {
+                "error": "GitHub response exceeds the download limit",
+                "error_code": "RESPONSE_TOO_LARGE",
+            }
         except requests.exceptions.SSLError:
             return {
                 "error": "GitHub TLS verification failed",
