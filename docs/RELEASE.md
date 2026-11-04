@@ -7,9 +7,12 @@ are not vendored into this package.
 
 ## Included behavior
 
-Ten read-only tools cover GitHub retrieval, commit-pinned line reads, bounded
+Eleven read-only tools cover GitHub retrieval, commit-pinned line reads, bounded
 source graphs, Mermaid/text diagrams, optional static SVG and lexical walkthroughs.
 The optional prepare_small_change prompt packages reuse/caller/test guidance.
+Python dependency inventory reads raw pyproject.toml declarations and optional
+groups with pinned manifest evidence and continuation. Migration advice remains
+future work; declarations do not establish locked/installed versions or upgrade safety.
 See [installation and client setup](../README.md) and the reproducible
 [offline evaluation](../benchmarks/README.md).
 

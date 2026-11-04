@@ -12,7 +12,7 @@ from mcp.client.stdio import stdio_client
 
 
 class StdioTests(unittest.IsolatedAsyncioTestCase):
-    async def test_installed_entrypoints_expose_ten_tools(self):
+    async def test_installed_entrypoints_expose_eleven_tools(self):
         executable = Path(sys.executable).with_name(
             "github-mcp.exe" if os.name == "nt" else "github-mcp"
         )
@@ -72,10 +72,30 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                                     "query_repository_graph",
                                     "create_architecture_diagram",
                                     "build_repository_walkthrough",
+                                    "inspect_python_dependencies",
                                 },
                             )
                             for tool in tools:
                                 self.assertEqual(tool.inputSchema["type"], "object")
+                            inventory_tool = next(
+                                t
+                                for t in tools
+                                if t.name == "inspect_python_dependencies"
+                            )
+                            self.assertIsNotNone(inventory_tool.outputSchema)
+                            self.assertTrue(inventory_tool.annotations.readOnlyHint)
+                            invalid_manifest = await session.call_tool(
+                                "inspect_python_dependencies",
+                                {
+                                    "owner": "a",
+                                    "repo": "b",
+                                    "manifest_path": "../pyproject.toml",
+                                },
+                            )
+                            self.assertEqual(
+                                invalid_manifest.structuredContent["error"]["code"],
+                                "INVALID_PATH",
+                            )
                             walkthrough = next(
                                 t
                                 for t in tools
