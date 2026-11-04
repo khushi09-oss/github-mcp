@@ -1,0 +1,15 @@
+{
+  "files": {
+    "python/helpers.py": "def normalize(value):\n    return value.strip()\n",
+    "python/main.py": "from helpers import normalize as clean\ndef handle(value):\n    return clean(value)\nraise RuntimeError('fixture must never execute')\n",
+    "javascript/helpers.js": "export function normalize(value) { return value.trim(); }\n",
+    "javascript/main.js": "import { normalize as clean } from './helpers.js';\nexport function handle(value) { return clean(value); }\nthrow new Error('fixture must never execute');\n",
+    "typescript/helpers.ts": "export function normalize(value: string) { return value.trim(); }\n",
+    "typescript/main.ts": "import { normalize as clean } from './helpers';\nexport function handle(value: string) { return clean(value); }\nthrow new Error('fixture must never execute');\n"
+  },
+  "expected": [
+    {"source": "python/main.py", "target": "python/helpers.py", "caller": "handle()", "callee": "normalize()", "line": 3},
+    {"source": "javascript/main.js", "target": "javascript/helpers.js", "caller": "handle()", "callee": "normalize()", "line": 2},
+    {"source": "typescript/main.ts", "target": "typescript/helpers.ts", "caller": "handle()", "callee": "normalize()", "line": 2}
+  ]
+}
