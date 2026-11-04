@@ -3,7 +3,15 @@ from typing import Annotated
 from mcp.server.fastmcp import FastMCP
 from mcp.types import CallToolResult, ToolAnnotations
 
-from github_mcp import companion, context, dependencies, diagrams, graph, snapshots
+from github_mcp import (
+    companion,
+    context,
+    dependencies,
+    diagrams,
+    graph,
+    imports,
+    snapshots,
+)
 from github_mcp.github import gh
 from github_mcp.models import (
     ArchitectureDiagram,
@@ -18,6 +26,30 @@ mcp = FastMCP("GitHub MCP")
 READ_ONLY = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
+
+
+@mcp.tool(title="Map Python import statements", annotations=READ_ONLY)
+async def map_python_imports(
+    owner: str,
+    repo: str,
+    ref: str = "HEAD",
+    focus_path: str = "",
+    module_prefix: str = "",
+    max_items: int = 50,
+    start_index: int = 0,
+) -> Annotated[CallToolResult, Result[imports.ImportMap]]:
+    """Map direct Python import/from statements, aliases and source spans at one commit.
+
+    Base install; existing acquisition/process limits apply. Prefix filters absolute
+    AST module fields, not distributions or guessed from-import submodules. Relative/
+    wildcard targets and runtime conditions stay unresolved. Follow continuation
+    verbatim. No source execution, dynamic-import inference or upgrade-safety claim.
+    """
+    return (
+        await imports.query_imports(
+            owner, repo, ref, focus_path, module_prefix, max_items, start_index
+        )
+    ).as_mcp()
 
 
 @mcp.tool(title="Inspect declared Python dependencies", annotations=READ_ONLY)

@@ -1,6 +1,6 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. Its eleven tools
+A local, read-only MCP server for exploring GitHub repositories. Its twelve tools
 provide repository details, browsing, search, and commit-pinned file reading with
 source links and continuation. This project is independent of GitHub.
 
@@ -80,6 +80,7 @@ The token determines which private repositories the tools can access.
 | `create_architecture_diagram` | Create Mermaid source views with pinned links and a text alternative |
 | `build_repository_walkthrough` | Bundle a question-focused reading path, excerpts and diagram (analysis extra) |
 | `inspect_python_dependencies` | Read declared project/optional dependencies from a pinned pyproject.toml |
+| `map_python_imports` | Map Python import statements and aliases with pinned evidence (base install) |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -146,6 +147,43 @@ Partial TOML returns `MANIFEST_LIMIT`; invalid syntax/structures return
 Existing retrieval/path/error handling applies. Repository strings remain data;
 no build backend, installer or source code runs. Usage diagrams, migration-rule
 matching and upgrade-safety conclusions are future work.
+
+## Python import statements
+
+`map_python_imports(owner, repo, ref="HEAD", focus_path="", module_prefix="",
+max_items=50, start_index=0)` scans acquired `.py` files using the runtime's AST
+parser. It requires only the base install. Each record includes the module,
+imported member, alias, syntactic local binding name, relative level, blob SHA and
+commit-pinned full-statement line citation. UTF-8 BOM, LF/CRLF and multiline imports
+are supported. Parser/identifier normalization is reported; inspect citations for
+exact spelling. Syntax parsing does not establish runtime execution or scope validity.
+
+An optional Python `focus_path` selects one acquired file. `module_prefix` matches
+absolute AST module fields, including dotted children. It is a module name, not a
+distribution name: `from a import b` has module `a`, and filtering `a.b` does not
+guess that `b` is a submodule. Relative imports are excluded by an absolute prefix.
+Names are normalized using Python's NFKC identifier convention.
+
+Absolute records have `module_unverified` resolution; `relative_unresolved` and
+`star_unresolved` mark relative targets and wildcard exports. No local-vs-installed
+classification is inferred. Conditional/type-only/unreachable imports are included
+without evaluating conditions. Dynamic imports, import hooks, re-export resolution, alias
+reassignment and `.pyi` stubs remain outside coverage. No result proves an upgrade
+safe or code unused.
+
+Pages contain 1–100 records, with offsets 0–20000. Counts distinguish prefix-filtered
+records from those outside the current page. Follow `continuation` verbatim for the
+same SHA/scope; each page reacquires source and access. Coverage reports acquisition
+omissions, unscanned files and per-file failures, and always remains incomplete.
+Bare-CR files fail with `UNSUPPORTED_NEWLINES` to protect LF-based citations.
+Malformed source reports `SYNTAX_ERROR` or `PARSE_LIMIT` without raw exception text.
+
+The existing acquisition profile downloads supported source within its limits,
+including non-Python files that this tool does not parse. The worker shares the
+single-analysis gate, 45-second/1 GiB budgets, 1 MB output cap, token removal and
+offline parsing policy. A 20,000 raw import-record cap returns `IMPORT_RECORD_LIMIT`;
+other job errors include `IMPORT_BUSY`, `IMPORT_TIMEOUT`, `IMPORT_OUTPUT_LIMIT`,
+`IMPORT_RESOURCE_LIMIT`, `IMPORT_WORKER_FAILED` and `IMPORT_SCAN_FAILED`.
 
 ## Optional small-change companion
 
