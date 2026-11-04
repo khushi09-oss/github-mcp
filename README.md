@@ -1,6 +1,6 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. Its ten tools
+A local, read-only MCP server for exploring GitHub repositories. Its eleven tools
 provide repository details, browsing, search, and commit-pinned file reading with
 source links and continuation. This project is independent of GitHub.
 
@@ -79,6 +79,7 @@ The token determines which private repositories the tools can access.
 | `query_repository_graph` | Inspect definitions/imports/calls with source evidence (analysis extra) |
 | `create_architecture_diagram` | Create Mermaid source views with pinned links and a text alternative |
 | `build_repository_walkthrough` | Bundle a question-focused reading path, excerpts and diagram (analysis extra) |
+| `inspect_python_dependencies` | Read declared project/optional dependencies from a pinned pyproject.toml |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -116,6 +117,35 @@ still truncates at 3,000 characters and reads the default branch. Directory
 browsing is also unpinned. Code search uses GitHub's index/default-branch rules,
 not an arbitrary commit; verify search matches with `read_file_lines` at your
 chosen SHA before treating them as evidence.
+
+## Declared Python dependencies
+
+`inspect_python_dependencies(owner, repo, ref="HEAD", manifest_path="pyproject.toml",
+max_items=50, start_index=0)` reads one complete manifest using the base install.
+It lists `[project].dependencies`, followed by optional groups sorted by name.
+Duplicates, declaration order within each group, extras, markers and direct URLs
+are preserved as decoded requirement strings. A null group means core dependency.
+This is declaration inventory: strings are not validated as PEP 508 requirements,
+resolved against indexes, installed, or compared with a lockfile.
+
+Results include commit/blob SHAs, a citation covering the whole manifest,
+`total_declared`, `omitted_items`, and `dynamic_dependencies`. Dynamic fields may
+add entries beyond those declared here. Missing declarations do not prove there
+are no dependencies. Build requirements, development groups, Poetry metadata,
+requirements files and transitive dependencies are outside this slice.
+
+Pages contain 1–100 items; offsets are 0–10000. `omitted_items` counts all entries
+outside the current page. Pass a non-null `continuation` verbatim to the same tool
+to reread the same immutable commit. Nested project manifests are supported via
+a portable relative path ending in `pyproject.toml`. Each call rechecks access;
+there is no retained snapshot or package installation.
+
+The complete manifest must fit the inherited 200-line/12,000-character read budget.
+Partial TOML returns `MANIFEST_LIMIT`; invalid syntax/structures return
+`INVALID_MANIFEST`, and a missing `[project]` table returns `UNSUPPORTED_MANIFEST`.
+Existing retrieval/path/error handling applies. Repository strings remain data;
+no build backend, installer or source code runs. Usage diagrams, migration-rule
+matching and upgrade-safety conclusions are future work.
 
 ## Optional small-change companion
 
