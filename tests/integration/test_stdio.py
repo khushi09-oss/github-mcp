@@ -12,7 +12,7 @@ from mcp.client.stdio import stdio_client
 
 
 class StdioTests(unittest.IsolatedAsyncioTestCase):
-    async def test_installed_entrypoints_expose_twelve_tools(self):
+    async def test_installed_entrypoints_expose_thirteen_tools(self):
         executable = Path(sys.executable).with_name(
             "github-mcp.exe" if os.name == "nt" else "github-mcp"
         )
@@ -74,10 +74,27 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                                     "build_repository_walkthrough",
                                     "inspect_python_dependencies",
                                     "map_python_imports",
+                                    "create_python_import_diagram",
                                 },
                             )
                             for tool in tools:
                                 self.assertEqual(tool.inputSchema["type"], "object")
+                            diagram_tool = next(
+                                t
+                                for t in tools
+                                if t.name == "create_python_import_diagram"
+                            )
+                            self.assertIsNotNone(diagram_tool.outputSchema)
+                            self.assertTrue(diagram_tool.annotations.readOnlyHint)
+                            invalid_diagram = await session.call_tool(
+                                "create_python_import_diagram",
+                                {"owner": "a", "repo": "b", "module_prefix": ""},
+                            )
+                            self.assertTrue(invalid_diagram.isError)
+                            self.assertEqual(
+                                invalid_diagram.structuredContent["error"]["code"],
+                                "INVALID_MODULE",
+                            )
                             import_tool = next(
                                 t for t in tools if t.name == "map_python_imports"
                             )
