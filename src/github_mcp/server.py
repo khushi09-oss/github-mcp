@@ -9,6 +9,7 @@ from github_mcp import (
     dependencies,
     diagrams,
     graph,
+    import_diagrams,
     imports,
     snapshots,
 )
@@ -26,6 +27,30 @@ mcp = FastMCP("GitHub MCP")
 READ_ONLY = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
+
+
+@mcp.tool(title="Create a focused Python import diagram", annotations=READ_ONLY)
+async def create_python_import_diagram(
+    owner: str,
+    repo: str,
+    module_prefix: str,
+    ref: str = "HEAD",
+    focus_path: str = "",
+    max_items: int = 30,
+    start_index: int = 0,
+) -> Annotated[CallToolResult, Result[import_diagrams.ImportDiagram]]:
+    """Diagram Python files importing an absolute module prefix, with pinned citations.
+
+    Base install; Mermaid and text plus AST evidence, coverage and continuation.
+    Follow continuation verbatim to this tool. Module names remain unverified;
+    syntax does not prove distribution ownership, runtime usage or upgrade safety.
+    No SVG, source execution or package installation. max_items is 1..30.
+    """
+    return (
+        await import_diagrams.create_diagram(
+            owner, repo, module_prefix, ref, focus_path, max_items, start_index
+        )
+    ).as_mcp()
 
 
 @mcp.tool(title="Map Python import statements", annotations=READ_ONLY)

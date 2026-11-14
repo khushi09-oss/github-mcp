@@ -1,6 +1,6 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. Its twelve tools
+A local, read-only MCP server for exploring GitHub repositories. Its thirteen tools
 provide repository details, browsing, search, and commit-pinned file reading with
 source links and continuation. This project is independent of GitHub.
 
@@ -81,6 +81,7 @@ The token determines which private repositories the tools can access.
 | `build_repository_walkthrough` | Bundle a question-focused reading path, excerpts and diagram (analysis extra) |
 | `inspect_python_dependencies` | Read declared project/optional dependencies from a pinned pyproject.toml |
 | `map_python_imports` | Map Python import statements and aliases with pinned evidence (base install) |
+| `create_python_import_diagram` | Visualize files importing a chosen Python module with pinned statement links (base install) |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -184,6 +185,35 @@ single-analysis gate, 45-second/1 GiB budgets, 1 MB output cap, token removal an
 offline parsing policy. A 20,000 raw import-record cap returns `IMPORT_RECORD_LIMIT`;
 other job errors include `IMPORT_BUSY`, `IMPORT_TIMEOUT`, `IMPORT_OUTPUT_LIMIT`,
 `IMPORT_RESOURCE_LIMIT`, `IMPORT_WORKER_FAILED` and `IMPORT_SCAN_FAILED`.
+
+## Focused Python import diagrams
+
+`create_python_import_diagram(owner, repo, module_prefix, ref="HEAD", focus_path="",
+max_items=30, start_index=0)` visualizes imports of a required absolute module prefix.
+For example, use `module_prefix="pydantic"` to find acquired Python files importing
+that module or its dotted children. This uses the base install and existing AST
+scanner; no Graphify extra, package installation or model processing is required.
+
+Import-statement cards are grouped by file and point to module-name nodes marked
+unverified. Cards show imported members and aliases, with commit-pinned source
+links. A solid arrow means observed syntax, not runtime use or a resolved package.
+Conditional imports are included; relative imports cannot match an absolute prefix,
+and star exports remain unresolved. Missing matches never prove upgrade safety.
+
+The result preserves the import records, parser identity, coverage and continuation,
+and adds `format="mermaid"`, `requested_ref`, `mermaid`, `text` and `legend`.
+The text alternative includes every displayed statement citation and coverage counts.
+Follow `continuation` verbatim **to this diagram tool** for the next page at the same
+commit and scope. `max_items` accepts 1–30; empty pages are explicit. A page has at most 30 distinct file
+groups and 30 distinct module nodes; offsets remain 0–20000. Counts describe imports,
+not unique affected files. Pagination can split one file across multiple pages.
+
+Acquisition, parse, worker and partial-coverage limits from import mapping apply.
+The combined Mermaid/text budget is 100,000 UTF-8 bytes; `DIAGRAM_LIMIT` suggests a
+smaller page or file focus. Invalid source links return `DIAGRAM_INVALID_SOURCE`.
+Mermaid rendering/link support depends on the client; the text alternative remains
+available. This tool has no SVG export. Existing Graphify source diagrams and their
+optional SVG support are separate and retain their original contracts.
 
 ## Optional small-change companion
 
