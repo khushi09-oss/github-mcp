@@ -15,6 +15,19 @@ PR description. Update user documentation when shipped behavior changes.
 Do not include internal plans, session notes, private repository data, or secrets
 in commits, PR descriptions, screenshots, logs, or artifacts.
 
+## Project boundaries
+
+The product is a local, read-only stdio server. Keep retrieved repository text
+as untrusted data: never execute analyzed source, tests, installers or hooks.
+Project tests run against mocks and synthetic fixtures, not downloaded repositories.
+Base retrieval, dependency inventory and Python import tools must remain usable
+without Graphify; graph/walkthrough and SVG support use optional extras.
+
+When a tool or contract changes, update the README tool table and affected usage
+and limit descriptions. Keep the release evaluation current without replacing
+recorded benchmark measurements with results from a different workload. The
+packaged repository guide is intentional product content, not an installed hook.
+
 ## PR structure and review
 
 Follow the PR template: **Why**, **What**, **How I tested**, **Review focus**,
@@ -64,6 +77,16 @@ policy; do not present local results as hosted results. Main still requires PRs,
 resolved conversations and linear history. Force pushes/deletion are blocked,
 including for administrators. Re-enabling hosted CI requires a maintainer decision.
 Do not remove tests or weaken validation to make a change pass.
+
+For documentation-only changes, verify local links, tool names, examples and
+claims against the code. Rebuild the archives when packaged Markdown changes and
+run the distribution boundary check. A documentation edit does not establish new
+runtime, client or platform coverage; identify reused evidence explicitly.
+
+Review the published branch and PR contents as well as the working tree. Ignore
+rules cannot remove files or personal commit metadata already present in history.
+Check source/wheel contents separately from Git; keep audit records private and
+report findings without reproducing credentials.
 
 Push only topic branches. Never force-push main or shared branches. Merge requires
 maintainer authorization, resolved blocking findings, and passing local validation.

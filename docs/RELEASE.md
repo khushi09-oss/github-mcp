@@ -21,9 +21,22 @@ labels and parse/acquisition coverage. It does not resolve distributions or runt
 See [installation and client setup](../README.md) and the reproducible
 [offline evaluation](../benchmarks/README.md).
 
+The base install provides browsing/search, pinned reads, dependency declarations,
+Python import mapping and import diagrams. The `analysis` extra adds Graphify
+queries, Mermaid/text architecture views and walkthroughs; `svg` includes analysis
+and adds static SVG export for architecture views. Python import diagrams remain
+Mermaid/text only. The optional prompt prepares a plan; it does not apply changes.
+
+## Verification scope
+
+The linked offline benchmark measures retrieval and Graphify artifacts only. It
+does not evaluate dependency inventory, Python import mapping or import diagrams.
+Those tools have separate regression and protocol checks; the benchmark results
+must not be presented as measurements of the newer tools.
+
 | Verification scope | Status |
 | --- | --- |
-| Windows x64, Python 3.12.13 | Local tests and installed-wheel checks verified |
+| Windows x64, Python 3.12.13 | Local tests verified; previous installed-wheel checks recorded |
 | Python MCP SDK 1.30.0 stdio client | Discovery, prompt and live pinned source flows verified |
 | Other IDE/desktop clients, Linux/macOS | Unverified |
 | Model answer quality, tokens and provider cost | Not measured; offline-only decision |
@@ -33,6 +46,13 @@ Fresh-environment and archive checks include the packaged guide, MIT metadata,
 license text and exclusion of private plans/artifacts. Native SVG is optional;
 Mermaid/text remain available on failure. Python dependency auditing is not a
 complete audit of native transitive code or a guarantee of security.
+
+The latest local SVG-profile suite passed 257 tests and 10 subtests, including
+deterministic five/six-second HTTP retry-boundary cases. Lint, formatting, types,
+archive builds and the hashed Python dependency audit passed. These checks were
+rerun for this documentation update; they are not a fresh installation or live
+rate-limit measurement. Fresh installed-wheel and base-only checks were last
+performed before that test-only change. No hosted checks are claimed.
 
 ## Compatibility, migration and rollback
 

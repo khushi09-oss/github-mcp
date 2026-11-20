@@ -1,11 +1,34 @@
 # GitHub MCP
 
-A local, read-only MCP server for exploring GitHub repositories. Its thirteen tools
-provide repository details, browsing, search, and commit-pinned file reading with
-source links and continuation. This project is independent of GitHub.
+A local, read-only MCP server for exploring GitHub repositories with source
+evidence. Read files at a fixed commit, inspect Python dependency declarations
+and imports, and create focused diagrams. Optional graph analysis adds source
+relationships and question-focused walkthroughs. This project is independent of GitHub.
+
+The server exposes thirteen tools and one optional change-planning prompt over
+stdio. It does not edit repositories, install their dependencies, execute their
+code, or call a model. The MCP client provides the conversation and reasoning.
 
 Licensed under [MIT](LICENSE). See the [unpublished release evaluation](docs/RELEASE.md)
 and [offline fixture measurements](benchmarks/README.md) for verified scope and limits.
+
+## Choose a workflow
+
+| Goal | Tools | Installation |
+| --- | --- | --- |
+| Browse a repository and inspect source at one commit | `get_repo`, `list_repo_contents`, `resolve_revision`, `read_file_lines` | Base |
+| Find repositories or indexed code | `list_user_repos`, `search_code` | Base; code search needs GitHub authentication |
+| Inspect declared Python dependencies | `inspect_python_dependencies` | Base |
+| Find and visualize Python import statements | `map_python_imports`, `create_python_import_diagram` | Base |
+| Inspect source relationships or get a guided reading path | `query_repository_graph`, `build_repository_walkthrough` | `analysis` extra |
+| Create a source architecture diagram | `create_architecture_diagram` | `analysis` for Mermaid/text; `svg` for optional SVG |
+
+Imports and extracted relationships are static evidence, not proof of runtime
+behavior or upgrade safety. Dependency migration matching is not implemented.
+
+Jump to [client setup](#connect-an-mcp-client), [the tool reference](#tools),
+[a pinned-source example](#example-inspect-python-imports-at-one-commit),
+[execution limits](#execution-limits-and-errors), or [development checks](#development-checks).
 
 ## Install from this checkout
 
@@ -26,12 +49,24 @@ This adds Graphify's code extractor and its dependencies; base retrieval remains
 usable without them. No skills, hooks, model backends or automatic uploads are
 installed or activated. This project is independent of Graphify Labs.
 
-Run the stdio server with either entry point:
+Run the base stdio server with either entry point:
 
 ```powershell
 uv run --locked github-mcp
 uv run --locked python -m github_mcp
 ```
+
+For graph analysis or SVG, select the corresponding extra when launching:
+
+```powershell
+uv run --locked --extra analysis github-mcp
+uv run --locked --extra svg github-mcp
+```
+
+Choose one profile; `svg` already includes graph analysis. These commands select
+locked dependencies and may install missing packages. To launch an environment
+you have already prepared without syncing it, use its Python interpreter as in
+the client configuration below. See [uv's sync behavior](https://docs.astral.sh/uv/concepts/projects/sync/).
 
 A stdio server waits for MCP messages from a client; it does not open a browser or
 listen on a web port. Stop a manually launched process with Ctrl+C. Diagnostics
@@ -40,8 +75,8 @@ use stderr; stdout is reserved for MCP messages.
 ## Connect an MCP client
 
 For a client accepting an `mcpServers` configuration, use the following shape.
-Replace both paths with absolute paths on your machine. Other clients may use a
-different configuration schema; retain the same command and arguments.
+Replace the interpreter path with an absolute path on your machine. Other clients
+may use a different configuration schema; retain the same command and arguments.
 
 ```json
 {
@@ -65,6 +100,52 @@ permissions needed for the repositories you want to inspect. Discovery/listing
 of MCP tools does not require a token; public reads can run anonymously.
 The token determines which private repositories the tools can access.
 
+## Example: inspect Python imports at one commit
+
+Ask your connected client:
+
+> Inspect the Python files importing pydantic in owner/repository. Pin the
+> analysis to one commit, show the import diagram and source citations, and
+> explain any coverage gaps. Do not infer that an upgrade is safe.
+
+The underlying tool sequence is:
+
+1. Call `resolve_revision(owner, repo, ref="HEAD")`.
+2. Pass the returned `data.commit_sha` to
+   `create_python_import_diagram(owner, repo, module_prefix="pydantic", ref=commit_sha)`.
+3. Inspect `data.mermaid`, `data.text`, import records and coverage. Follow a
+   non-null continuation verbatim to the same diagram tool for another page.
+4. Use `read_file_lines` at that same SHA to inspect surrounding source.
+
+This workflow uses the base install. It maps import syntax, including aliases;
+it does not resolve installed distributions, validate API migrations or prove
+that a conditional import runs. Client rendering varies; text and source links
+remain available when Mermaid cannot render.
+
+## Implemented architecture
+
+```mermaid
+flowchart LR
+    Client[MCP client] --> Server[Local stdio server]
+    Server --> Reads[GitHub metadata and pinned reads]
+    Server --> Analysis[Bounded snapshot analysis]
+    Reads --> GitHub[GitHub REST API]
+    Analysis --> GitHub
+    Analysis --> AST[Python import AST worker]
+    Analysis --> Graph[Optional Graphify worker]
+    Graph --> SVG[Optional SVG renderer]
+    Reads --> Evidence[Tool results and source links]
+    AST --> Evidence
+    Graph --> Evidence
+    SVG --> Evidence
+    Evidence --> Client
+```
+
+All components shown are implemented. Snapshot analysis uses temporary files and
+isolated workers; it has no persistent cache or database. Mermaid/text rendering
+also supports the base Python import map. There is no hosted endpoint, web UI,
+repository-write service or model backend.
+
 ## Tools
 
 | Identifier | Purpose |
@@ -77,7 +158,7 @@ The token determines which private repositories the tools can access.
 | `resolve_revision` | Resolve a branch/tag (`HEAD` by default) to a full commit SHA |
 | `read_file_lines` | Read bounded UTF-8 lines at a commit with source links |
 | `query_repository_graph` | Inspect definitions/imports/calls with source evidence (analysis extra) |
-| `create_architecture_diagram` | Create Mermaid source views with pinned links and a text alternative |
+| `create_architecture_diagram` | Create Mermaid/text source views (analysis extra), with optional SVG (svg extra) |
 | `build_repository_walkthrough` | Bundle a question-focused reading path, excerpts and diagram (analysis extra) |
 | `inspect_python_dependencies` | Read declared project/optional dependencies from a pinned pyproject.toml |
 | `map_python_imports` | Map Python import statements and aliases with pinned evidence (base install) |
@@ -92,8 +173,8 @@ Line numbers start at 1; `start_line=1` and `line_count=100` are the defaults
 (maximum 200 lines). A symbolic ref is resolved once per call; separate calls
 using a branch name can see different commits.
 
-These two new tools advertise output schemas and return `{data, error}` in MCP
-`structuredContent`, also mirrored as JSON text. Exactly one field is non-null;
+`resolve_revision` and `read_file_lines` advertise output schemas and return
+`{data, error}` in MCP `structuredContent`, also mirrored as JSON text. Exactly one field is non-null;
 execution errors set `isError=true`. File data includes repository, commit/blob
 SHAs, path, line range, total lines, text, and a commit-pinned GitHub URL.
 When `data.continuation` is non-null, pass that entire object as the next
