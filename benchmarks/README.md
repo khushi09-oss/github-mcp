@@ -1,5 +1,10 @@
 # Offline artifact evaluation
 
+This benchmark covers commit-pinned line retrieval and optional Graphify source
+relations. It does not measure the Python dependency inventory, import map/import
+diagram tools, SVG rendering, or the change-planning prompt. See the
+[release evaluation](../docs/RELEASE.md) for the wider implemented scope.
+
 Run from this checkout with the locked analysis extra:
 
 ```powershell
@@ -29,7 +34,9 @@ Model, tokens and provider cost are null because evaluation is offline-only.
 
 ## Recorded local observation
 
-Windows/Python 3.12.13, graphifyy 0.9.100, three fresh-process trials per arm:
+Recorded during the initial release evaluation on Windows/Python 3.12.13,
+graphifyy 0.9.100, three fresh-process trials per arm. These are retained
+observations, not results of the latest documentation update:
 
 | Arm | Failures | Median seconds | Structured bytes | Label checks |
 | --- | ---: | ---: | ---: | --- |
