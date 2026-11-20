@@ -29,6 +29,13 @@ def http(monkeypatch):
     return get
 
 
+@pytest.fixture
+def fixed_time(monkeypatch):
+    now = 1_700_000_000
+    monkeypatch.setattr(time, "time", lambda: now)
+    return now
+
+
 def test_timeout_and_redirect_policy(http):
     assert server.gh("/repos/a/b") == {"ok": True}
     assert http.call_args.args[0] == "https://api.github.com/repos/a/b"
@@ -181,30 +188,61 @@ def test_bad_pagination_does_not_call_github(monkeypatch, page, per_page):
     get.assert_not_called()
 
 
-def test_reset_and_retry_headers_use_the_later_deadline(http):
+def test_reset_and_retry_headers_use_the_later_deadline(http, fixed_time):
     http.return_value = response(
         403,
         headers={
             "Retry-After": "1",
             "X-RateLimit-Remaining": "0",
-            "X-RateLimit-Reset": str(time.time() + 120),
+            "X-RateLimit-Reset": str(fixed_time + 120),
         },
     )
     result = server.gh("/repos/a/b")
-    assert 119 <= result["retry_after_seconds"] <= 120
+    assert result["retry_after_seconds"] == 120
     assert http.call_count == 1
 
 
-def test_http_date_retry_after_is_respected(http):
+def test_http_date_retry_after_is_respected(http, fixed_time):
     http.return_value = response(
         429,
         headers={
-            "Retry-After": formatdate(time.time() + 600, usegmt=True),
+            "Retry-After": formatdate(fixed_time + 600, usegmt=True),
         },
     )
-    assert 590 <= server.gh("/repos/a/b")["retry_after_seconds"] <= 600
+    assert server.gh("/repos/a/b")["retry_after_seconds"] == 600
     assert http.call_count == 1
     time.sleep.assert_not_called()
+
+
+@pytest.mark.parametrize(
+    "status,code", [(403, "RATE_LIMITED"), (429, "RATE_LIMITED"), (503, "HTTP_ERROR")]
+)
+@pytest.mark.parametrize("delay", [5, 6])
+@pytest.mark.parametrize("header_format", ["seconds", "http-date"])
+def test_retry_after_wait_boundary(
+    http, fixed_time, status, code, delay, header_format
+):
+    retry_after = (
+        str(delay)
+        if header_format == "seconds"
+        else formatdate(fixed_time + delay, usegmt=True)
+    )
+    http.side_effect = [
+        response(status, headers={"Retry-After": retry_after}),
+        response(data={"ok": True}),
+    ]
+
+    result = server.gh("/repos/a/b")
+
+    if delay == 5:
+        assert result == {"ok": True}
+        assert http.call_count == 2
+        time.sleep.assert_called_once_with(5)
+    else:
+        assert result["error_code"] == code
+        assert result["retry_after_seconds"] == 6
+        assert http.call_count == 1
+        time.sleep.assert_not_called()
 
 
 def test_service_retry_after_is_not_ignored(http):
