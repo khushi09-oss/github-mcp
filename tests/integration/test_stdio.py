@@ -12,7 +12,7 @@ from mcp.client.stdio import stdio_client
 
 
 class StdioTests(unittest.IsolatedAsyncioTestCase):
-    async def test_installed_entrypoints_expose_thirteen_tools(self):
+    async def test_installed_entrypoints_expose_fourteen_tools(self):
         executable = Path(sys.executable).with_name(
             "github-mcp.exe" if os.name == "nt" else "github-mcp"
         )
@@ -75,10 +75,25 @@ class StdioTests(unittest.IsolatedAsyncioTestCase):
                                     "inspect_python_dependencies",
                                     "map_python_imports",
                                     "create_python_import_diagram",
+                                    "check_python_migration",
                                 },
                             )
                             for tool in tools:
                                 self.assertEqual(tool.inputSchema["type"], "object")
+                            migration_tool = next(
+                                t for t in tools if t.name == "check_python_migration"
+                            )
+                            self.assertIsNotNone(migration_tool.outputSchema)
+                            self.assertTrue(migration_tool.annotations.readOnlyHint)
+                            invalid_migration = await session.call_tool(
+                                "check_python_migration",
+                                {"owner": "a", "repo": "b", "migration_id": "unknown"},
+                            )
+                            self.assertTrue(invalid_migration.isError)
+                            self.assertEqual(
+                                invalid_migration.structuredContent["error"]["code"],
+                                "UNSUPPORTED_MIGRATION",
+                            )
                             diagram_tool = next(
                                 t
                                 for t in tools

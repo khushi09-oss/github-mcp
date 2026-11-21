@@ -7,12 +7,14 @@ are not vendored into this package.
 
 ## Included behavior
 
-Thirteen read-only tools cover GitHub retrieval, commit-pinned line reads, bounded
+Fourteen read-only tools cover GitHub retrieval, commit-pinned line reads, bounded
 source graphs, Mermaid/text diagrams, optional static SVG and lexical walkthroughs.
 The optional prepare_small_change prompt packages reuse/caller/test guidance.
 Python dependency inventory reads raw pyproject.toml declarations and optional
-groups with pinned manifest evidence and continuation. Migration advice remains
-future work; declarations do not establish locked/installed versions or upgrade safety.
+groups with pinned manifest evidence and continuation. Two reviewed Pydantic
+V1-to-V2 root-import rules flag the BaseSettings move and validator deprecation
+with pinned syntax and official guidance. Other imports may be unmatched or unknown;
+declarations and import matches do not establish installed versions or upgrade safety.
 Focused Python import diagrams add file-grouped Mermaid and text views of a chosen
 module prefix, preserving statement citations, pagination and incomplete coverage.
 Module names remain unverified; this view has no SVG export or runtime-use proof.
@@ -31,8 +33,8 @@ Mermaid/text only. The optional prompt prepares a plan; it does not apply change
 
 The linked offline benchmark measures retrieval and Graphify artifacts only. It
 does not evaluate dependency inventory, Python import mapping or import diagrams.
-Those tools have separate regression and protocol checks; the benchmark results
-must not be presented as measurements of the newer tools.
+Those tools and the migration import checker have separate regression and protocol
+checks; the benchmark results must not be presented as measurements of the newer tools.
 
 | Verification scope | Status |
 | --- | --- |
@@ -47,12 +49,12 @@ license text and exclusion of private plans/artifacts. Native SVG is optional;
 Mermaid/text remain available on failure. Python dependency auditing is not a
 complete audit of native transitive code or a guarantee of security.
 
-The latest local SVG-profile suite passed 257 tests and 10 subtests, including
-deterministic five/six-second HTTP retry-boundary cases. Lint, formatting, types,
-archive builds and the hashed Python dependency audit passed. These checks were
-rerun for this documentation update; they are not a fresh installation or live
-rate-limit measurement. Fresh installed-wheel and base-only checks were last
-performed before that test-only change. No hosted checks are claimed.
+The latest full SVG-profile suite passed 267 tests and 10 subtests, including
+10 focused migration-check cases. Lint, formatting, types and archive builds passed. A real
+stdio check loaded the built wheel in an existing base-only environment and
+verified five pinned synthetic pages without installing packages. This is not a
+fresh-install or live GitHub check. The earlier hashed Python dependency audit
+was not rerun; dependencies are unchanged. No hosted checks are claimed.
 
 ## Compatibility, migration and rollback
 
