@@ -1,5 +1,6 @@
 """Reviewed import-only migration rules; no installed-package or usage resolution."""
 
+import keyword
 from typing import Literal
 
 from pydantic import BaseModel, Field
@@ -37,10 +38,17 @@ RULES = {
 }
 
 
+class ImportSuggestion(BaseModel):
+    current_import_example: str
+    suggested_import_example: str
+    review_notes: str
+
+
 class MigrationAssessment(BaseModel):
     import_index: int
     status: Literal["matched_import", "no_rule_match", "unknown"]
     rule: MigrationRule | None = None
+    suggestion: ImportSuggestion | None = None
 
 
 class MigrationContinuation(BaseModel):
@@ -109,8 +117,25 @@ async def check_migration(
                 "pydantic.v1."
             ):
                 status = "no_rule_match"
+        suggestion = None
+        if rule and not keyword.iskeyword(record.alias or ""):
+            module, member = rule.replacement.rsplit(".", 1)
+            alias = f" as {record.alias}" if record.alias else ""
+            binding = record.alias or record.imported_name
+            replacement_alias = f" as {binding}" if binding != member else ""
+            suggestion = ImportSuggestion(
+                current_import_example=f"from pydantic import {record.imported_name}{alias}",
+                suggested_import_example=f"from {module} import {member}{replacement_alias}",
+                review_notes=(
+                    "Add pydantic-settings to the project's declared dependencies and review settings configuration; this import example alone does not complete the migration."
+                    if record.imported_name == "BaseSettings"
+                    else "Review decorator usages, signatures and changed semantics; preserving the local name does not preserve V1 behavior or complete the migration."
+                ),
+            )
         assessments.append(
-            MigrationAssessment(import_index=index, status=status, rule=rule)
+            MigrationAssessment(
+                import_index=index, status=status, rule=rule, suggestion=suggestion
+            )
         )
     continuation = None
     if source.continuation:
@@ -126,6 +151,7 @@ async def check_migration(
                 "Only two reviewed Pydantic V1-to-V2 root-import rules are checked; no_rule_match or an empty page does not establish upgrade safety.",
                 "Module names and distribution ownership are unverified; matches identify import syntax, not runtime use or installed versions.",
                 "Module-only, wildcard and unsupported submodule imports remain unknown; relative/dynamic imports, wrappers and unacquired or failed source remain gaps.",
+                "Suggestions are normalized standalone import examples, not verbatim source and not a patch. Keyword-normalized aliases retain findings without suggestions. Preserve other imports, comments and surrounding code; no edits or tests are performed.",
                 "Follow this report's continuation to check_python_migration; source.continuation belongs to map_python_imports. Counts describe imports, not findings.",
             ],
         )

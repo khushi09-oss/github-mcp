@@ -15,6 +15,11 @@ groups with pinned manifest evidence and continuation. Two reviewed Pydantic
 V1-to-V2 root-import rules flag the BaseSettings move and validator deprecation
 with pinned syntax and official guidance. Other imports may be unmatched or unknown;
 declarations and import matches do not establish installed versions or upgrade safety.
+Matched imports can include normalized before/after import examples and review notes.
+Examples preserve local names and disclose dependency/decorator review requirements;
+they are not file patches or complete migrations. Ambiguous/nonmatching imports and
+aliases normalized to Python keywords have no suggestion. The tool does not edit
+analyzed source or run the analyzed project's tests.
 Focused Python import diagrams add file-grouped Mermaid and text views of a chosen
 module prefix, preserving statement citations, pagination and incomplete coverage.
 Module names remain unverified; this view has no SVG export or runtime-use proof.
@@ -49,8 +54,8 @@ license text and exclusion of private plans/artifacts. Native SVG is optional;
 Mermaid/text remain available on failure. Python dependency auditing is not a
 complete audit of native transitive code or a guarantee of security.
 
-The latest full SVG-profile suite passed 267 tests and 10 subtests, including
-10 focused migration-check cases. Lint, formatting, types and archive builds passed. A real
+The latest full SVG-profile suite passed 273 tests and 10 subtests, including
+16 focused migration-check cases. Lint, formatting, types and archive builds passed. A real
 stdio check loaded the built wheel in an existing base-only environment and
 verified five pinned synthetic pages without installing packages. This is not a
 fresh-install or live GitHub check. The earlier hashed Python dependency audit
