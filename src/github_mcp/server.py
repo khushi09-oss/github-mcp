@@ -43,7 +43,9 @@ async def check_python_migration(
     """Check two Pydantic V1-to-V2 import rules with pinned source and official guidance.
 
     Base install. Assessments index source.imports; matched syntax does not prove
-    runtime use or installed-package ownership. Unknown/no-match is not safety.
+    runtime use or installed-package ownership. Matched assessments include
+    review-only import examples preserving local names, not source patches.
+    Unknown/no-match is not safety.
     Follow the report's top-level continuation verbatim to this tool. max_items
     is 1..30. No edits, installation, source execution or migration URL fetches.
     """

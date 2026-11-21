@@ -1,3 +1,4 @@
+import ast
 import asyncio
 from unittest.mock import AsyncMock
 
@@ -138,3 +139,68 @@ def test_tool_serializes_success_with_source_and_rules(view, monkeypatch):
     assert report["source"]["imports"][0]["evidence"]["start_line"] == 1
     assert report["assessments"][0]["rule"]["change_kind"] == "moved"
     assert response.structuredContent["error"] is None
+
+
+@pytest.mark.parametrize("alias", [None, "CustomName"])
+@pytest.mark.parametrize("member", ["BaseSettings", "validator"])
+def test_matched_import_suggestions_preserve_bindings(member, alias, view, monkeypatch):
+    record = view.imports[0].model_copy(
+        update={
+            "imported_name": member,
+            "alias": alias,
+            "bound_name": alias or member,
+        }
+    )
+    view.imports = [record]
+    monkeypatch.setattr(
+        imports, "query_imports", AsyncMock(return_value=Result(data=view))
+    )
+    report = asyncio.run(migrations.check_migration("a", "b")).data
+    suggestion = report.assessments[0].suggestion
+    before = ast.parse(suggestion.current_import_example).body[0]
+    after = ast.parse(suggestion.suggested_import_example).body[0]
+    assert before.module == "pydantic" and before.names[0].name == member
+    assert before.names[0].asname == alias
+    assert (after.names[0].asname or after.names[0].name) == record.bound_name
+    if member == "BaseSettings":
+        assert after.module == "pydantic_settings"
+        assert after.names[0].name == "BaseSettings"
+        assert "pydantic-settings" in suggestion.review_notes
+    else:
+        assert after.module == "pydantic" and after.names[0].name == "field_validator"
+        assert (
+            "decorator" in suggestion.review_notes
+            and "semantics" in suggestion.review_notes
+        )
+    assert report.source.imports == [record]
+    assert "not a patch" in " ".join(report.limitations)
+
+
+def test_suggestions_are_null_for_unknown_and_nonmatching_imports(view, monkeypatch):
+    monkeypatch.setattr(
+        imports, "query_imports", AsyncMock(return_value=Result(data=view))
+    )
+    response = asyncio.run(server.check_python_migration("a", "b"))
+    assessments = response.structuredContent["data"]["assessments"]
+    assert all(a["suggestion"] is not None for a in assessments[:2])
+    assert all(a["suggestion"] is None for a in assessments[2:])
+
+
+def test_normalized_keyword_alias_keeps_finding_without_invalid_example(
+    view, monkeypatch
+):
+    alias = (
+        ast.parse("from pydantic import validator as \uff44\uff45\uff46")
+        .body[0]
+        .names[0]
+        .asname
+    )
+    assert alias == "def"
+    view.imports = [
+        view.imports[1].model_copy(update={"alias": alias, "bound_name": alias})
+    ]
+    monkeypatch.setattr(
+        imports, "query_imports", AsyncMock(return_value=Result(data=view))
+    )
+    assessment = asyncio.run(migrations.check_migration("a", "b")).data.assessments[0]
+    assert assessment.status == "matched_import" and assessment.suggestion is None

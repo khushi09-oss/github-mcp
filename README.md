@@ -313,6 +313,20 @@ Two rules cover direct root imports: `BaseSettings` moved to
 a link to the official versioned migration guide. Aliases preserve the same rule.
 The server never fetches migration URLs or installs or changes packages.
 
+Matched assessments also include a `suggestion` with `current_import_example`,
+`suggested_import_example` and `review_notes`. These normalized standalone examples
+preserve local names and aliases; they are not verbatim source or file patches.
+For example, `from pydantic import BaseSettings as Settings` suggests
+`from pydantic_settings import BaseSettings as Settings`, plus adding the separate
+`pydantic-settings` dependency and reviewing settings behavior. Validator examples
+preserve the local name (for example, `field_validator as validator`); review all
+decorator usages, signatures and changed semantics before applying a change.
+Keep other imported names, comments and surrounding code: replacing a multi-name
+statement with a single example could remove needed imports. Nonmatching/unknown
+assessments have `suggestion=null`. The server performs no edits or project tests.
+If identifier normalization turns an alias into a Python keyword, its finding is
+retained without a suggestion, avoiding invalid example syntax.
+
 The report's `source` contains the existing import map and incomplete coverage;
 each assessment's zero-based `import_index` identifies its entry in `source.imports`.
 `matched_import` means matching syntax; `no_rule_match` means neither rule matches
