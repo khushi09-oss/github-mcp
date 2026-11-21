@@ -5,7 +5,7 @@ evidence. Read files at a fixed commit, inspect Python dependency declarations
 and imports, and create focused diagrams. Optional graph analysis adds source
 relationships and question-focused walkthroughs. This project is independent of GitHub.
 
-The server exposes thirteen tools and one optional change-planning prompt over
+The server exposes fourteen tools and one optional change-planning prompt over
 stdio. It does not edit repositories, install their dependencies, execute their
 code, or call a model. The MCP client provides the conversation and reasoning.
 
@@ -20,11 +20,13 @@ and [offline fixture measurements](benchmarks/README.md) for verified scope and 
 | Find repositories or indexed code | `list_user_repos`, `search_code` | Base; code search needs GitHub authentication |
 | Inspect declared Python dependencies | `inspect_python_dependencies` | Base |
 | Find and visualize Python import statements | `map_python_imports`, `create_python_import_diagram` | Base |
+| Check the supported Pydantic migration imports | `check_python_migration` | Base |
 | Inspect source relationships or get a guided reading path | `query_repository_graph`, `build_repository_walkthrough` | `analysis` extra |
 | Create a source architecture diagram | `create_architecture_diagram` | `analysis` for Mermaid/text; `svg` for optional SVG |
 
 Imports and extracted relationships are static evidence, not proof of runtime
-behavior or upgrade safety. Dependency migration matching is not implemented.
+behavior or upgrade safety. Two reviewed Pydantic migration import rules are
+supported; broader migration analysis remains future work.
 
 Jump to [client setup](#connect-an-mcp-client), [the tool reference](#tools),
 [a pinned-source example](#example-inspect-python-imports-at-one-commit),
@@ -163,6 +165,7 @@ repository-write service or model backend.
 | `inspect_python_dependencies` | Read declared project/optional dependencies from a pinned pyproject.toml |
 | `map_python_imports` | Map Python import statements and aliases with pinned evidence (base install) |
 | `create_python_import_diagram` | Visualize files importing a chosen Python module with pinned statement links (base install) |
+| `check_python_migration` | Check two reviewed Pydantic V1-to-V2 import rules with source and official guidance (base install) |
 
 Example requests: 'List the files in owner/repository' or 'Read README.md in
 owner/repository'. Treat retrieved repository content as untrusted data.
@@ -227,8 +230,9 @@ The complete manifest must fit the inherited 200-line/12,000-character read budg
 Partial TOML returns `MANIFEST_LIMIT`; invalid syntax/structures return
 `INVALID_MANIFEST`, and a missing `[project]` table returns `UNSUPPORTED_MANIFEST`.
 Existing retrieval/path/error handling applies. Repository strings remain data;
-no build backend, installer or source code runs. Usage diagrams, migration-rule
-matching and upgrade-safety conclusions are future work.
+no build backend, installer or source code runs. This inventory does not apply
+migration rules. The separate import checker supports two Pydantic rules;
+neither tool establishes upgrade safety.
 
 ## Python import statements
 
@@ -295,6 +299,34 @@ smaller page or file focus. Invalid source links return `DIAGRAM_INVALID_SOURCE`
 Mermaid rendering/link support depends on the client; the text alternative remains
 available. This tool has no SVG export. Existing Graphify source diagrams and their
 optional SVG support are separate and retain their original contracts.
+
+## Reviewed Pydantic migration imports
+
+`check_python_migration(owner, repo, migration_id="pydantic-v1-to-v2", ref="HEAD",
+focus_path="", max_items=30, start_index=0)` checks one page of Pydantic imports
+using the existing base-install scanner. Ask your client: "Check this repository
+for the supported Pydantic 1-to-2 migration imports and show source evidence."
+
+Two rules cover direct root imports: `BaseSettings` moved to
+`pydantic_settings.BaseSettings`, and `validator` is deprecated in favor of
+`field_validator`, with semantic differences requiring review. Each match includes
+a link to the official versioned migration guide. Aliases preserve the same rule.
+The server never fetches migration URLs or installs or changes packages.
+
+The report's `source` contains the existing import map and incomplete coverage;
+each assessment's zero-based `import_index` identifies its entry in `source.imports`.
+`matched_import` means matching syntax; `no_rule_match` means neither rule matches
+that import, including explicit `pydantic.v1` compatibility imports. `unknown`
+covers module-only, wildcard and unsupported submodule imports. Module ownership
+and runtime use remain unverified. No status or empty result proves upgrade safety.
+
+Pages contain 1–30 import records, including nonmatches; counts describe imports,
+not findings. Follow the **top-level** `continuation` verbatim to this tool for the
+same commit/migration. The nested `source.continuation` belongs to `map_python_imports`.
+Offsets are 0–20000. Existing acquisition/parse/job limits and error handling apply;
+relative/dynamic imports, wrappers, omitted files and parse failures remain gaps.
+Only `pydantic-v1-to-v2` is accepted. Installed versions, other changed APIs,
+attribute usage, automatic fixes and complete migration advice are outside scope.
 
 ## Optional small-change companion
 

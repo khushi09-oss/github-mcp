@@ -11,6 +11,7 @@ from github_mcp import (
     graph,
     import_diagrams,
     imports,
+    migrations,
     snapshots,
 )
 from github_mcp.github import gh
@@ -27,6 +28,30 @@ mcp = FastMCP("GitHub MCP")
 READ_ONLY = ToolAnnotations(
     readOnlyHint=True, destructiveHint=False, idempotentHint=True, openWorldHint=True
 )
+
+
+@mcp.tool(title="Check reviewed Python migration imports", annotations=READ_ONLY)
+async def check_python_migration(
+    owner: str,
+    repo: str,
+    migration_id: str = "pydantic-v1-to-v2",
+    ref: str = "HEAD",
+    focus_path: str = "",
+    max_items: int = 30,
+    start_index: int = 0,
+) -> Annotated[CallToolResult, Result[migrations.MigrationReport]]:
+    """Check two Pydantic V1-to-V2 import rules with pinned source and official guidance.
+
+    Base install. Assessments index source.imports; matched syntax does not prove
+    runtime use or installed-package ownership. Unknown/no-match is not safety.
+    Follow the report's top-level continuation verbatim to this tool. max_items
+    is 1..30. No edits, installation, source execution or migration URL fetches.
+    """
+    return (
+        await migrations.check_migration(
+            owner, repo, migration_id, ref, focus_path, max_items, start_index
+        )
+    ).as_mcp()
 
 
 @mcp.tool(title="Create a focused Python import diagram", annotations=READ_ONLY)
